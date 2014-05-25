@@ -140,7 +140,11 @@ func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
 
 	res := make([]int, len(values))
 	for i, value := range values {
-		res[i] = value.(int)
+		res[i], err = s.redis.Int(value)
+		if err != nil {
+			return make([]int, 0), err
+		}
+
 	}
 
 	return res, nil
