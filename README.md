@@ -32,9 +32,10 @@ With this package i am gonna try to handle the persistency layer for user presen
 
 
 
-To get the events from the redis database we should uptade the redis config with the following data
 
 # Redis configuration
+To get the events from the redis database we should uptade the redis config with the following data
+
 `redis-cli config set notify-keyspace-events Ex$`
 
 Or
