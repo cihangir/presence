@@ -2,6 +2,7 @@ package redisence
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -64,11 +65,85 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 // if key doesnt exists, it means user is now online
 // Whenever application gets any prob from a client
 // should call this function
-func (s *Session) Ping(id string) error {
-	if s.redis.Expire(id, s.inactiveDuration) == nil {
-		return nil
+func (s *Session) Ping(ids ...string) error {
+	if len(ids) == 1 {
+		if s.redis.Expire(ids[0], s.inactiveDuration) == nil {
+			return nil
+		}
+		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
 	}
-	return s.redis.Setex(id, s.inactiveDuration, id)
+
+	existance, err := s.sendMultiExpire(ids)
+	if err != nil {
+		return err
+	}
+
+	return s.sendMultiSetIfRequired(ids, existance)
+}
+
+func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
+	if len(ids) != len(existance) {
+		return fmt.Errorf("Length is not same Ids: %d Existance: %d", len(ids), len(existance))
+	}
+
+	c := s.redis.Pool().Get()
+
+	c.Send("MULTI")
+	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+	for i, exists := range existance {
+		if exists == 0 {
+			c.Send("SETEX", s.redis.AddPrefix(ids[i]), seconds)
+		}
+	}
+
+	r, err := c.Do("EXEC")
+	if err != nil {
+		return err
+	}
+
+	values, err := s.redis.Values(r)
+	fmt.Println(values, err)
+	if err != nil {
+		return err
+	}
+
+	err = c.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
+	c := s.redis.Pool().Get()
+
+	c.Send("MULTI")
+	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+	for _, id := range ids {
+		c.Send("EXPIRE", s.redis.AddPrefix(id), seconds)
+	}
+	r, err := c.Do("EXEC")
+	if err != nil {
+		return make([]int, 0), err
+	}
+
+	values, err := s.redis.Values(r)
+	if err != nil {
+		return make([]int, 0), err
+	}
+
+	err = c.Close()
+	if err != nil {
+		return make([]int, 0), err
+	}
+
+	res := make([]int, len(values))
+	for i, value := range values {
+		res[i] = value.(int)
+	}
+
+	return res, nil
 }
 
 // Status returns the current status a key from system
