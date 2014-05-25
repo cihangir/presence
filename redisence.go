@@ -17,18 +17,32 @@ const (
 	Closed
 )
 
+// Event is the data type for
+// occuring events in the system
 type Event struct {
-	Id     string
+	// Id is the given key by the application
+	Id string
+
+	// Status holds the changing type of event
 	Status Status
 }
 
+// Prefix for redisence package
 const RedisencePrefix = "redisence"
 
+// Session holds the required connection data for redis
 type Session struct {
-	redis            *redis.RedisSession
+	// main redis connection
+	redis *redis.RedisSession
+
+	// inactiveDuration specifies no-probe allowance time
 	inactiveDuration time.Duration
-	becameOffline    string
-	becameOnline     string
+
+	// receiving offline events pattern
+	becameOfflinePattern string
+
+	// receiving online events pattern
+	becameOnlinePattern string
 }
 
 func New(server string, db int, inactiveDuration time.Duration) (*Session, error) {
@@ -39,15 +53,17 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 	redis.SetPrefix(RedisencePrefix)
 
 	return &Session{
-		redis:            redis,
-		becameOffline:    fmt.Sprintf("__keyevent@%d__:expired", db),
-		becameOnline:     fmt.Sprintf("__keyevent@%d__:set", db),
-		inactiveDuration: inactiveDuration,
+		redis:                redis,
+		becameOfflinePattern: fmt.Sprintf("__keyevent@%d__:expired", db),
+		becameOnlinePattern:  fmt.Sprintf("__keyevent@%d__:set", db),
+		inactiveDuration:     inactiveDuration,
 	}, nil
 }
 
-// Whenever we get any prob from a client
-// we should call this function
+// Ping resets the expiration time for any given key
+// if key doesnt exists, it means user is now online
+// Whenever application gets any prob from a client
+// should call this function
 func (s *Session) Ping(id string) error {
 	if s.redis.Expire(id, s.inactiveDuration) == nil {
 		return nil
@@ -55,7 +71,10 @@ func (s *Session) Ping(id string) error {
 	return s.redis.Setex(id, s.inactiveDuration, id)
 }
 
+// Status returns the current status a key from system
+// TODO use variadic function arguments
 func (s *Session) Status(id string) Status {
+	// to-do use MGET instead of exists
 	if s.redis.Exists(id) {
 		return Online
 	}
@@ -63,14 +82,15 @@ func (s *Session) Status(id string) Status {
 	return Offline
 }
 
+// createEvent Creates the event with the required properties
 func (s *Session) createEvent(n gredis.PMessage) Event {
 	e := Event{}
 
 	switch n.Pattern {
-	case s.becameOffline:
+	case s.becameOfflinePattern:
 		e.Id = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Offline
-	case s.becameOnline:
+	case s.becameOnlinePattern:
 		e.Id = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Online
 	default:
@@ -80,10 +100,12 @@ func (s *Session) createEvent(n gredis.PMessage) Event {
 	return e
 }
 
+// ListenStatusChanges pubscribes to the redis and
+// gets online and offline status changes from it
 func (s *Session) ListenStatusChanges(events chan Event) {
 	psc := s.redis.CreatePubSubConn()
 
-	psc.PSubscribe(s.becameOnline, s.becameOffline)
+	psc.PSubscribe(s.becameOnlinePattern, s.becameOfflinePattern)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -104,7 +126,7 @@ func (s *Session) ListenStatusChanges(events chan Event) {
 	// avoid lock
 	go func() {
 		wg.Wait()
-		psc.PUnsubscribe(s.becameOffline, s.becameOnline)
+		psc.PUnsubscribe(s.becameOfflinePattern, s.becameOnlinePattern)
 		psc.Close()
 		events <- Event{Status: Closed}
 	}()
