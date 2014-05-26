@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -10,9 +12,9 @@ import (
 )
 
 func main() {
-	// if os.Getenv("GOMAXPROCS") == "" {
-	// 	runtime.GOMAXPROCS(runtime.NumCPU())
-	// }
+	if os.Getenv("GOMAXPROCS") == "" {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
 
 	session, err := redisence.New("localhost:6379", 10, time.Second*1)
 	if err != nil {
@@ -23,16 +25,16 @@ func main() {
 	wg.Add(4)
 
 	go func() {
-		pingdom(session, 1, 3000)
+		pingdom(session, 1, 30000)
 		wg.Done()
 	}()
 	go func() {
-		pingdom(session, 3001, 6000)
+		pingdom(session, 30001, 60000)
 		wg.Done()
 	}()
 
 	go func() {
-		pingdom(session, 6001, 9000)
+		pingdom(session, 60001, 90000)
 		wg.Done()
 	}()
 
