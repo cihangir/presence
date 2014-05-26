@@ -67,9 +67,12 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 // should call this function
 func (s *Session) Ping(ids ...string) error {
 	if len(ids) == 1 {
+		// if member exits increase ttl
 		if s.redis.Expire(ids[0], s.inactiveDuration) == nil {
 			return nil
 		}
+
+		// if member doesnt exist set it
 		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
 	}
 
