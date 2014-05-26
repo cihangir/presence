@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -47,13 +48,17 @@ func main() {
 }
 
 func pingdom(session *redisence.Session, start, end int) {
-	throttleCount := 1000
+	throttleCount := 1500
 	req := make([]string, throttleCount)
 	count := 0
 	for i := start; i <= end; i++ {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
-			session.Ping(req...)
+			err := session.Ping(req...)
+			if err != nil {
+				fmt.Println(err)
+			}
+
 			count = 0
 		}
 		count++
