@@ -130,24 +130,32 @@ func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
 }
 
 func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
+	// cache inactive duration as string
+	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+
+	// get one connection from pool
 	c := s.redis.Pool().Get()
 
+	// init multi command
 	c.Send("MULTI")
-	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+
+	// send expire command for all members
 	for _, id := range ids {
 		c.Send("EXPIRE", s.redis.AddPrefix(id), seconds)
 	}
+
+	// execute command
 	r, err := c.Do("EXEC")
 	if err != nil {
 		return make([]int, 0), err
 	}
 
-	values, err := s.redis.Values(r)
-	if err != nil {
+	// close connection
+	if err := c.Close(); err != nil {
 		return make([]int, 0), err
 	}
 
-	err = c.Close()
+	values, err := s.redis.Values(r)
 	if err != nil {
 		return make([]int, 0), err
 	}
