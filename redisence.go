@@ -208,17 +208,10 @@ func (s *Session) Status(ids ...string) ([]Event, error) {
 			return make([]Event, 0), err
 		}
 
-		e := Event{
+		res[i] = Event{
 			Id:     ids[i],
 			Status: Status(status),
 		}
-
-		// if status == 0 {
-		// 	e.Status = Offline
-		// } else {
-		// 	e.Status = Online
-		// }
-		res[i] = e
 	}
 
 	return res, nil
