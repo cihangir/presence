@@ -22,7 +22,7 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(3)
 
 	go func() {
 		pingdom(session, 1, 30000)
@@ -38,11 +38,6 @@ func main() {
 		wg.Done()
 	}()
 
-	go func() {
-		statuko(session, 1, 30000)
-		wg.Done()
-	}()
-
 	wg.Wait()
 }
 
@@ -54,24 +49,6 @@ func pingdom(session *redisence.Session, start, end int) {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
 			err := session.Ping(req...)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			count = 0
-		}
-		count++
-	}
-}
-
-func statuko(session *redisence.Session, start, end int) {
-	throttleCount := 1500
-	req := make([]string, throttleCount)
-	count := 0
-	for i := start; i <= end; i++ {
-		req[count] = strconv.Itoa(i)
-		if count == throttleCount-1 {
-			err := session.Status(req)
 			if err != nil {
 				fmt.Println(err)
 			}
