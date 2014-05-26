@@ -89,29 +89,40 @@ func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
 		return fmt.Errorf("Length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
 
+	// cache inactive duration as string
+	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+
+	// get one connection from pool
 	c := s.redis.Pool().Get()
 
-	c.Send("MULTI")
-	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+	// item count for non-existent members
+	notExistsCount := 0
+
 	for i, exists := range existance {
-		if exists == 0 {
-			c.Send("SETEX", s.redis.AddPrefix(ids[i]), seconds)
+		// `0` means, member doesnt exists in presence system
+		if exists != 0 {
+			continue
+		}
+
+		// init multi command lazily
+		if notExistsCount == 0 {
+			c.Send("MULTI")
+		}
+
+		notExistsCount++
+		c.Send("SETEX", s.redis.AddPrefix(ids[i]), seconds, ids[i])
+	}
+
+	// execute multi command if only we flushed some to connection
+	if notExistsCount != 0 {
+		// ignore values
+		if _, err := c.Do("EXEC"); err != nil {
+			return err
 		}
 	}
 
-	r, err := c.Do("EXEC")
-	if err != nil {
-		return err
-	}
-
-	values, err := s.redis.Values(r)
-	fmt.Println(values, err)
-	if err != nil {
-		return err
-	}
-
-	err = c.Close()
-	if err != nil {
+	// do not forget to close the connection
+	if err := c.Close(); err != nil {
 		return err
 	}
 
