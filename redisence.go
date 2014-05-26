@@ -13,8 +13,8 @@ import (
 type Status int
 
 const (
-	Online Status = iota
-	Offline
+	Offline Status = iota
+	Online
 	Closed
 )
 
