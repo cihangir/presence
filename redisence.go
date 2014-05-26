@@ -173,14 +173,55 @@ func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
 }
 
 // Status returns the current status a key from system
-// TODO use variadic function arguments
-func (s *Session) Status(id string) Status {
-	// to-do use MGET instead of exists
-	if s.redis.Exists(id) {
-		return Online
+func (s *Session) Status(ids ...string) ([]Event, error) {
+	// get one connection from pool
+	c := s.redis.Pool().Get()
+
+	// init multi command
+	c.Send("MULTI")
+
+	// send expire command for all members
+	for _, id := range ids {
+		c.Send("EXISTS", s.redis.AddPrefix(id))
 	}
 
-	return Offline
+	// execute command
+	r, err := c.Do("EXEC")
+	if err != nil {
+		return make([]Event, 0), err
+	}
+
+	// close connection
+	if err := c.Close(); err != nil {
+		return make([]Event, 0), err
+	}
+
+	values, err := s.redis.Values(r)
+	if err != nil {
+		return make([]Event, 0), err
+	}
+
+	res := make([]Event, len(values))
+	for i, value := range values {
+		status, err := s.redis.Int(value)
+		if err != nil {
+			return make([]Event, 0), err
+		}
+
+		e := Event{
+			Id:     ids[i],
+			Status: Status(status),
+		}
+
+		// if status == 0 {
+		// 	e.Status = Offline
+		// } else {
+		// 	e.Status = Online
+		// }
+		res[i] = e
+	}
+
+	return res, nil
 }
 
 // createEvent Creates the event with the required properties
