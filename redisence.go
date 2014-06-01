@@ -46,6 +46,21 @@ type Session struct {
 
 	// receiving online events pattern
 	becameOnlinePattern string
+
+	// inactiveDurationAsString holds the expiration duration as string
+	inactiveDurationAsString string
+
+	// closeChan is used for giving close signal
+	closeChan chan bool
+
+	// errChan pipe all errors  the this channel
+	errChan chan error
+
+	// closed holds the status of connection
+	closed bool
+
+	//psc holds the pubsub channel if opened
+	psc *gredis.PubSubConn
 }
 
 // New creates a session for any broker system that is architected to use,
@@ -62,9 +77,18 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 		becameOfflinePattern: fmt.Sprintf("__keyevent@%d__:expired", db),
 		becameOnlinePattern:  fmt.Sprintf("__keyevent@%d__:set", db),
 		inactiveDuration:     inactiveDuration,
+		// cache inactive duration as string
+		inactiveDurationAsString: strconv.Itoa(int(inactiveDuration.Seconds())),
+		closeChan:                make(chan bool, 1),
+		errChan:                  make(chan error, 1),
 	}, nil
 }
 
+// Close closes the redis connection gracefully
+func (s *Session) Close() error {
+	s.closeChan <- true
+	return s.close()
+}
 // Ping resets the expiration time for any given key
 // if key doesnt exists, it means user is now online and should be set as online
 // Whenever application gets any prob from a client
@@ -252,6 +276,44 @@ func (s *Session) Status(id string) (Event, error) {
 
 	return res, nil
 }
+
+// ListenStatusChanges subscribes with a pattern to the redis and
+// gets online and offline status changes from it
+func (s *Session) ListenStatusChanges(events chan Event) {
+	s.psc = s.redis.CreatePubSubConn()
+	s.psc.PSubscribe(s.becameOnlinePattern, s.becameOfflinePattern)
+
+	go s.listenEvents(events)
+
+	<-s.closeChan
+	events <- Event{Status: Closed}
+}
+
+func (s *Session) close() error {
+	s.closed = true
+	if s.psc != nil {
+		s.psc.PUnsubscribe()
+	}
+
+	return s.redis.Close()
+}
+
+// createEvent Creates the event with the required properties
+func (s *Session) listenEvents(events chan Event) {
+	for {
+		if s.closed {
+			break
+		}
+		switch n := s.psc.Receive().(type) {
+		case gredis.PMessage:
+			events <- s.createEvent(n)
+		case error:
+			s.errChan <- n
+			return
+		}
+	}
+}
+
 // createEvent Creates the event with the required properties
 func (s *Session) createEvent(n gredis.PMessage) Event {
 	e := Event{}
@@ -268,36 +330,4 @@ func (s *Session) createEvent(n gredis.PMessage) Event {
 	}
 
 	return e
-}
-
-// ListenStatusChanges pubscribes to the redis and
-// gets online and offline status changes from it
-func (s *Session) ListenStatusChanges(events chan Event) {
-	psc := s.redis.CreatePubSubConn()
-
-	psc.PSubscribe(s.becameOnlinePattern, s.becameOfflinePattern)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		for {
-			switch n := psc.Receive().(type) {
-			case gredis.PMessage:
-				events <- s.createEvent(n)
-			case error:
-				fmt.Printf("error: %v\n", n)
-				return
-			}
-		}
-	}()
-
-	// avoid lock
-	go func() {
-		wg.Wait()
-		psc.PUnsubscribe(s.becameOfflinePattern, s.becameOnlinePattern)
-		psc.Close()
-		events <- Event{Status: Closed}
-	}()
 }
