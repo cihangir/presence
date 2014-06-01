@@ -1,15 +1,17 @@
+// Package redisence provides simple user presence system
 package redisence
 
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	gredis "github.com/garyburd/redigo/redis"
 	"github.com/koding/redis"
 )
 
+// Status defines what is the current status of a user
+// in presence system
 type Status int
 
 const (
@@ -46,6 +48,8 @@ type Session struct {
 	becameOnlinePattern string
 }
 
+// New creates a session for any broker system that is architected to use,
+// communicate, forward events to the presence system
 func New(server string, db int, inactiveDuration time.Duration) (*Session, error) {
 	redis, err := redis.NewRedisSession(&redis.RedisConf{Server: server, DB: db})
 	if err != nil {
@@ -62,10 +66,10 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 }
 
 // Ping resets the expiration time for any given key
-// if key doesnt exists, it means user is now online
+// if key doesnt exists, it means user is now online and should be set as online
 // Whenever application gets any prob from a client
 // should call this function
-func (s *Session) Ping(ids ...string) error {
+func (s *Session) Online(ids ...string) error {
 	if len(ids) == 1 {
 		// if member exits increase ttl
 		if s.redis.Expire(ids[0], s.inactiveDuration) == nil {
@@ -84,6 +88,10 @@ func (s *Session) Ping(ids ...string) error {
 	return s.sendMultiSetIfRequired(ids, existance)
 }
 
+
+// sendMultiSetIfRequired accepts set of ids and their existtance status
+// traverse over them and any key is not exists in db, set them in a multi/exec
+// request
 func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
 	if len(ids) != len(existance) {
 		return fmt.Errorf("Length is not same Ids: %d Existance: %d", len(ids), len(existance))
@@ -129,10 +137,9 @@ func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
 	return nil
 }
 
-func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
-	// cache inactive duration as string
-	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
-
+// sendMultiExpire if the system tries to update more than one key at a time
+// inorder to leverage rtt, send multi expire
+func (s *Session) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
 
@@ -164,6 +171,8 @@ func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
 	for i, value := range values {
 		res[i], err = s.redis.Int(value)
 		if err != nil {
+			// what about returning half-generated slice?
+			// instead of an empty one
 			return make([]int, 0), err
 		}
 
@@ -172,8 +181,8 @@ func (s *Session) sendMultiExpire(ids []string) ([]int, error) {
 	return res, nil
 }
 
-// Status returns the current status a key from system
-func (s *Session) Status(ids ...string) ([]Event, error) {
+// MultipleStatus returns the current status multiple keys from system
+func (s *Session) MultipleStatus(ids []string) ([]Event, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
 
@@ -209,7 +218,8 @@ func (s *Session) Status(ids ...string) ([]Event, error) {
 		}
 
 		res[i] = Event{
-			Id:     ids[i],
+			Id: ids[i],
+			// cast redis response to Status
 			Status: Status(status),
 		}
 	}
