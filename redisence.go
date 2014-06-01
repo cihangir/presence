@@ -110,7 +110,7 @@ func (s *Session) Online(ids ...string) error {
 		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
 	}
 
-	existance, err := s.sendMultiExpire(ids)
+	existance, err := s.sendMultiExpire(ids, s.inactiveDurationAsString)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (s *Session) sendMultiExpire(ids []string, duration string) ([]int, error) 
 
 	// send expire command for all members
 	for _, id := range ids {
-		c.Send("EXPIRE", s.redis.AddPrefix(id), seconds)
+		c.Send("EXPIRE", s.redis.AddPrefix(id), duration)
 	}
 
 	// execute command
