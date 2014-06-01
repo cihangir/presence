@@ -239,6 +239,19 @@ func (s *Session) MultipleStatus(ids []string) ([]Event, error) {
 	return res, nil
 }
 
+// Status returns the current status a key from system
+func (s *Session) Status(id string) (Event, error) {
+	res := Event{
+		Id:     id,
+		Status: Offline,
+	}
+
+	if s.redis.Exists(id) {
+		res.Status = Online
+	}
+
+	return res, nil
+}
 // createEvent Creates the event with the required properties
 func (s *Session) createEvent(n gredis.PMessage) Event {
 	e := Event{}
