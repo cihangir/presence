@@ -1,3 +1,5 @@
+# Redisence [![GoDoc](https://godoc.org/github.com/siesta/redisence?status.png)](https://godoc.org/github.com/siesta/redisence) [![Build Status](https://travis-ci.org/siesta/redisence.png)](https://travis-ci.org/siesta/redisence)
+
 redisence
 =========
 
