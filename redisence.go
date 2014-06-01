@@ -89,6 +89,12 @@ func (s *Session) Close() error {
 	s.closeChan <- true
 	return s.close()
 }
+
+// Error returns error if it happens while listening  to status changes
+func (s *Session) Error() error {
+	return <-s.errChan
+}
+
 // Ping resets the expiration time for any given key
 // if key doesnt exists, it means user is now online and should be set as online
 // Whenever application gets any prob from a client
