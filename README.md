@@ -1,10 +1,23 @@
 # Redisence [![GoDoc](https://godoc.org/github.com/siesta/redisence?status.png)](https://godoc.org/github.com/siesta/redisence) [![Build Status](https://travis-ci.org/siesta/redisence.png)](https://travis-ci.org/siesta/redisence)
 
-redisence
-=========
-
 Presence in Redis
 ------------------
+
+For usage see examples below or go to godoc page.
+
+## Install and Usage
+
+Install the package with:
+
+```bash
+go get github.com/siesta/redisence
+```
+
+Import it with:
+
+```go
+import "github.com/siesta/redisence"
+```
 
 One of the most important and resource intensive operation in chat systems is handling user presence.
 Because in order to start the chat one should provide the presence information.
