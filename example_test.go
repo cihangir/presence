@@ -17,13 +17,13 @@ func main() {
 
 	go func() {
 		time.Sleep(time.Second * 1)
-		s.Ping("id")
+		s.Online("id")
 		time.Sleep(time.Second * 1)
-		s.Ping("id")
-		s.Ping("id2")
-		s.Ping("id2")
-		s.Ping("id2")
-		s.Ping("id3")
+		s.Online("id")
+		s.Online("id2")
+		s.Online("id2")
+		s.Online("id2")
+		s.Online("id3")
 	}()
 
 	for event := range events {
