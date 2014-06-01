@@ -88,6 +88,18 @@ func (s *Session) Online(ids ...string) error {
 	return s.sendMultiSetIfRequired(ids, existance)
 }
 
+// Offline sets given ids as offline, ignores any error
+// since not exist keys returned as nilErr
+func (s *Session) Offline(ids ...string) error {
+	if len(ids) == 1 {
+		if s.redis.Expire(ids[0], time.Second*0) == nil {
+			return nil
+		}
+	}
+
+	s.sendMultiExpire(ids, "0")
+	return nil
+}
 
 // sendMultiSetIfRequired accepts set of ids and their existtance status
 // traverse over them and any key is not exists in db, set them in a multi/exec
