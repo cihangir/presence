@@ -142,18 +142,13 @@ func TestStatusWithTimeout(t *testing.T) {
 func TestSubscriptions(t *testing.T) {
 	t.Skip("Skipped to travis")
 	s := initRedisence(t)
-	defer s.Close()
 
 	// wait for all keys to expire
 	time.Sleep(time.Second * 1)
 
-	events := make(chan Event)
-
 	id1 := "13"
 	id2 := "14"
 	id3 := "15"
-
-	go s.ListenStatusChanges(events)
 
 	time.AfterFunc(time.Second*5, func() {
 		err := s.Close()
@@ -175,18 +170,12 @@ func TestSubscriptions(t *testing.T) {
 
 	onlineCount := 0
 	offlineCount := 0
-	closedCount := 0
-	for event := range events {
+	for event := range s.ListenStatusChanges() {
 		switch event.Status {
 		case Online:
 			onlineCount++
 		case Offline:
 			offlineCount++
-		case Closed:
-			closedCount++
-			close(events)
-			// return
-		default:
 		}
 	}
 
@@ -205,15 +194,6 @@ func TestSubscriptions(t *testing.T) {
 			),
 		)
 	}
-
-	if closedCount != 1 {
-		t.Fatal(
-			errors.New(
-				fmt.Sprintf("closedCount count should be 3 it is %d", closedCount),
-			),
-		)
-	}
-
 }
 
 func TestJustMultiOffline(t *testing.T) {
