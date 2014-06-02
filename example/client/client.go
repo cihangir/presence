@@ -63,7 +63,7 @@ func statuko(session *redisence.Session, start, end int) {
 	for i := start; i <= end; i++ {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
-			_, err := session.MultipleStatus(req)
+			_, err := session.Status(req)
 			if err != nil {
 				fmt.Println(err)
 			}
