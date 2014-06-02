@@ -59,6 +59,32 @@ if err != nil {
 
 ```
 
+#### Basic Operations
+
+```go
+
+// send online presence data to system - user log in
+s.Online("id")
+s.Online("id2")
+
+
+// send offline presence data to system - user log out
+s.Offline("id")
+s.Offline("id2")
+
+// get status of some ids
+status, err := s.MultipleStatus([]string{"id20", "id21"})
+if err != nil {
+    return err
+}
+
+for _, st := range status {
+    if st.Status != Offline {
+        //....
+    }
+}
+
+```
 # Redis configuration
 To get the events from the redis database we should uptade the redis config with the following data
 
