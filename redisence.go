@@ -48,9 +48,6 @@ type Session struct {
 	// receiving online events pattern
 	becameOnlinePattern string
 
-	// inactiveDurationAsString holds the expiration duration as string
-	inactiveDurationAsString string
-
 	// errChan pipe all errors  the this channel
 	errChan chan error
 
@@ -81,9 +78,7 @@ func New(server string, db int, inactiveDuration time.Duration) (*Session, error
 		becameOfflinePattern: fmt.Sprintf("__keyevent@%d__:expired", db),
 		becameOnlinePattern:  fmt.Sprintf("__keyevent@%d__:set", db),
 		inactiveDuration:     inactiveDuration,
-		// cache inactive duration as string
-		inactiveDurationAsString: strconv.Itoa(int(inactiveDuration.Seconds())),
-		errChan:                  make(chan error, 1),
+		errChan:              make(chan error, 1),
 	}, nil
 }
 
@@ -133,7 +128,7 @@ func (s *Session) Online(ids ...string) error {
 		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
 	}
 
-	existance, err := s.sendMultiExpire(ids, s.inactiveDurationAsString)
+	existance, err := s.sendMultiExpire(ids, s.inactiveDurationString())
 	if err != nil {
 		return err
 	}
@@ -162,8 +157,8 @@ func (s *Session) sendMultiSetIfRequired(ids []string, existance []int) error {
 		return fmt.Errorf("Length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
 
-	// cache inactive duration as string
-	seconds := strconv.Itoa(int(s.inactiveDuration.Seconds()))
+	// cache inactive duration
+	seconds := s.inactiveDurationString()
 
 	// get one connection from pool
 	c := s.redis.Pool().Get()
@@ -353,4 +348,8 @@ func (s *Session) createEvent(n gredis.PMessage) Event {
 	}
 
 	return e
+}
+
+func (s *Session) inactiveDurationString() string {
+	return strconv.Itoa(int(s.inactiveDuration.Seconds()))
 }
