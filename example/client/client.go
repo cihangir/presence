@@ -48,7 +48,7 @@ func pingdom(session *redisence.Session, start, end int) {
 	for i := start; i <= end; i++ {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
-			err := session.Ping(req...)
+			err := session.Online(req...)
 			if err != nil {
 				fmt.Println(err)
 			}
