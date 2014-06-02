@@ -126,6 +126,8 @@ Or
 set in redis.conf
 `notify-keyspace-events "Ex$"`
 
+for more info http://redis.io/topics/notifications
+
 ## License
 
 The MIT License (MIT) - see LICENSE for more details
