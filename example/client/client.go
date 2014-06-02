@@ -22,19 +22,16 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 
 	go func() {
 		pingdom(session, 1, 30000)
 		wg.Done()
 	}()
-	go func() {
-		pingdom(session, 30001, 60000)
-		wg.Done()
-	}()
 
+	// request data from database
 	go func() {
-		pingdom(session, 60001, 90000)
+		statuko(session, 1, 30000)
 		wg.Done()
 	}()
 
@@ -49,6 +46,24 @@ func pingdom(session *redisence.Session, start, end int) {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
 			err := session.Online(req...)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			count = 0
+		}
+		count++
+	}
+}
+
+func statuko(session *redisence.Session, start, end int) {
+	throttleCount := 1500
+	req := make([]string, throttleCount)
+	count := 0
+	for i := start; i <= end; i++ {
+		req[count] = strconv.Itoa(i)
+		if count == throttleCount-1 {
+			_, err := session.MultipleStatus(req)
 			if err != nil {
 				fmt.Println(err)
 			}
