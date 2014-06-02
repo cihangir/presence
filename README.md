@@ -73,7 +73,7 @@ s.Offline("id")
 s.Offline("id2")
 
 // get status of some ids
-status, err := s.MultipleStatus([]string{"id20", "id21"})
+status, err := s.Status([]string{"id20", "id21"}...)
 if err != nil {
     return err
 }

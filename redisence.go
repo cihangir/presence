@@ -242,7 +242,11 @@ func (s *Session) sendMultiExpire(ids []string, duration string) ([]int, error) 
 }
 
 // MultipleStatus returns the current status multiple keys from system
-func (s *Session) MultipleStatus(ids []string) ([]Event, error) {
+func (s *Session) Status(ids ...string) ([]Event, error) {
+	if len(ids) == 1 {
+		return s.singleStatus(ids[0])
+	}
+
 	// get one connection from pool
 	c := s.redis.Pool().Get()
 
@@ -288,14 +292,15 @@ func (s *Session) MultipleStatus(ids []string) ([]Event, error) {
 }
 
 // Status returns the current status a key from system
-func (s *Session) Status(id string) (Event, error) {
-	res := Event{
+func (s *Session) singleStatus(id string) ([]Event, error) {
+	res := make([]Event, 1)
+	res[0] = Event{
 		Id:     id,
 		Status: Offline,
 	}
 
 	if s.redis.Exists(id) {
-		res.Status = Online
+		res[0].Status = Online
 	}
 
 	return res, nil

@@ -58,7 +58,7 @@ func TestOnlineStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status.Status != Online {
+	if status[0].Status != Online {
 		t.Fatal(errors.New("User should be active"))
 	}
 }
@@ -77,7 +77,7 @@ func TestOfflineStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status.Status != Offline {
+	if status[0].Status != Offline {
 		t.Fatal(errors.New("User should be offline"))
 	}
 }
@@ -90,7 +90,7 @@ func TestMultiStatusAllOnline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status, err := s.MultipleStatus([]string{"id6", "id7"})
+	status, err := s.Status([]string{"id6", "id7"}...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestMultiStatusAllOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status, err := s.MultipleStatus([]string{"id10", "id11"})
+	status, err := s.Status([]string{"id10", "id11"}...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestStatusWithTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Status == Online {
+	if status[0].Status == Online {
 		t.Fatal(errors.New("User should not be active"))
 	}
 }
@@ -227,7 +227,7 @@ func TestMultiOfflineWithMultiStatus(t *testing.T) {
 	if err := s.Offline("id20", "id21"); err != nil {
 		t.Fatal(err)
 	}
-	status, err := s.MultipleStatus([]string{"id20", "id21"})
+	status, err := s.Status([]string{"id20", "id21"}...)
 	if err != nil {
 		t.Fatal(err)
 	}
