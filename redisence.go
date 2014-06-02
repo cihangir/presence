@@ -17,7 +17,6 @@ type Status int
 const (
 	Offline Status = iota
 	Online
-	Closed
 )
 
 // Event is the data type for
