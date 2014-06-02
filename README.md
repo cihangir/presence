@@ -3,22 +3,6 @@
 Presence in Redis
 ------------------
 
-For usage see examples below or go to godoc page.
-
-## Install and Usage
-
-Install the package with:
-
-```bash
-go get github.com/siesta/redisence
-```
-
-Import it with:
-
-```go
-import "github.com/siesta/redisence"
-```
-
 One of the most important and resource intensive operation in chat systems is handling user presence.
 Because in order to start the chat one should provide the presence information.
 And keeping this data up-to-date is another challenge.
@@ -41,12 +25,39 @@ either by the application or by the persistency layer
 Online clients should notify the presence system with their unique identifier repeatedly. We can call it as heartbeat.
 
 
-
 With this package i am gonna try to handle the persistency layer for user presence.
 
 
+For usage see examples below or go to godoc page.
+
+## Install and Usage
+
+Install the package with:
+
+```bash
+go get github.com/siesta/redisence
+```
+
+Import it with:
+
+```go
+import "github.com/siesta/redisence"
+```
 
 
+## Examples
+
+#### Initialization of a new Redisence
+
+```go
+
+// create a presence system
+s, err := New(serverAddr, dbNumber, timeoutDuration)
+if err != nil {
+    return err
+}
+
+```
 
 # Redis configuration
 To get the events from the redis database we should uptade the redis config with the following data
