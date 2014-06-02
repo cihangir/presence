@@ -196,17 +196,17 @@ func (s *Session) sendMultiExpire(ids []string, duration string) ([]int, error) 
 	// execute command
 	r, err := c.Do("EXEC")
 	if err != nil {
-		return make([]int, 0), err
+		return nil, err
 	}
 
 	// close connection
 	if err := c.Close(); err != nil {
-		return make([]int, 0), err
+		return nil, err
 	}
 
 	values, err := s.redis.Values(r)
 	if err != nil {
-		return make([]int, 0), err
+		return nil, err
 	}
 
 	res := make([]int, len(values))
@@ -215,7 +215,7 @@ func (s *Session) sendMultiExpire(ids []string, duration string) ([]int, error) 
 		if err != nil {
 			// what about returning half-generated slice?
 			// instead of an empty one
-			return make([]int, 0), err
+			return nil, err
 		}
 
 	}
@@ -239,24 +239,24 @@ func (s *Session) MultipleStatus(ids []string) ([]Event, error) {
 	// execute command
 	r, err := c.Do("EXEC")
 	if err != nil {
-		return make([]Event, 0), err
+		return nil, err
 	}
 
 	// close connection
 	if err := c.Close(); err != nil {
-		return make([]Event, 0), err
+		return nil, err
 	}
 
 	values, err := s.redis.Values(r)
 	if err != nil {
-		return make([]Event, 0), err
+		return nil, err
 	}
 
 	res := make([]Event, len(values))
 	for i, value := range values {
 		status, err := s.redis.Int(value)
 		if err != nil {
-			return make([]Event, 0), err
+			return nil, err
 		}
 
 		res[i] = Event{
