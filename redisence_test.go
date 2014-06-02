@@ -12,6 +12,11 @@ func initRedisence(t *testing.T) *Session {
 	if err != nil {
 		t.Fatal(err)
 	}
+	conn := ses.redis.Pool().Get()
+	conn.Do("CONFIG", "SET", "notify-keyspace-events Ex$")
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	return ses
 }
