@@ -125,3 +125,7 @@ To get the events from the redis database we should uptade the redis config with
 Or
 set in redis.conf
 `notify-keyspace-events "Ex$"`
+
+## License
+
+The MIT License (MIT) - see LICENSE for more details
