@@ -45,7 +45,7 @@ func pingdom(session *redisence.Session, start, end int) {
 	for i := start; i <= end; i++ {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
-			err := session.Ping(req...)
+			err := session.Online(req...)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -63,7 +63,7 @@ func statuko(session *redisence.Session, start, end int) {
 	for i := start; i <= end; i++ {
 		req[count] = strconv.Itoa(i)
 		if count == throttleCount-1 {
-			_, err := session.Status(req...)
+			_, err := session.MultipleStatus(req)
 			if err != nil {
 				fmt.Println(err)
 			}
