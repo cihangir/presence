@@ -90,11 +90,6 @@ for _, st := range status {
 
 ```go
 
-// create channel for events
-events := make(chan Event, 10)
-// start listening to them
-go s.ListenStatusChanges(events)
-
 go func() {
     s.Online("id")
     time.Sleep(time.Second * 1)
@@ -102,15 +97,13 @@ go func() {
     s.Online("id2")
 }()
 
-for event := range events {
+// start listening to them
+for event := range s.ListenStatusChanges() {
     switch event.Status {
     case Online:
         // ....
     case Offline:
         // ....
-    case Closed:
-        close(events)
-        return
     }
 }
 
