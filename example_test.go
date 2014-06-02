@@ -11,10 +11,6 @@ func main() {
 		panic(err)
 	}
 
-	events := make(chan Event, 10)
-
-	go s.ListenStatusChanges(events)
-
 	go func() {
 		time.Sleep(time.Second * 1)
 		s.Online("id")
@@ -26,16 +22,12 @@ func main() {
 		s.Online("id3")
 	}()
 
-	for event := range events {
+	for event := range s.ListenStatusChanges() {
 		switch event.Status {
 		case Online:
 			fmt.Println(event)
 		case Offline:
 			fmt.Println(event)
-		case Closed:
-			close(events)
-			fmt.Println(event)
-			return
 		}
 	}
 }
