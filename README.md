@@ -85,6 +85,38 @@ for _, st := range status {
 }
 
 ```
+
+#### Listening for events
+
+```go
+
+// create channel for events
+events := make(chan Event, 10)
+// start listening to them
+go s.ListenStatusChanges(events)
+
+go func() {
+    s.Online("id")
+    time.Sleep(time.Second * 1)
+    s.Online("id")
+    s.Online("id2")
+}()
+
+for event := range events {
+    switch event.Status {
+    case Online:
+        // ....
+    case Offline:
+        // ....
+    case Closed:
+        close(events)
+        return
+    }
+}
+
+```
+
+
 # Redis configuration
 To get the events from the redis database we should uptade the redis config with the following data
 
