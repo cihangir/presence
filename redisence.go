@@ -40,22 +40,22 @@ func New(backend Backend) (*Session, error) {
 	return &Session{backend: backend}, nil
 }
 
-// Online sets given ids as online, ignores any error
+// Online sets given ids as online
 func (s *Session) Online(ids ...string) error {
 	return s.backend.Online(ids...)
 }
 
-// Offline sets given ids as offline, ignores any error
+// Offline sets given ids as offline
 func (s *Session) Offline(ids ...string) error {
 	return s.backend.Offline(ids...)
 }
 
-// MultipleStatus returns the current status multiple keys from system
+// Status returns the current status of multiple keys from system
 func (s *Session) Status(ids ...string) ([]Event, error) {
 	return s.backend.Status(ids...)
 }
 
-// Close closes the redis connection gracefully
+// Close closes the backend connection gracefully
 func (s *Session) Close() error {
 	return s.backend.Close()
 }
@@ -65,7 +65,7 @@ func (s *Session) Error() error {
 	return s.backend.Error()
 }
 
-// ListenStatusChanges subscribes with a pattern to the redis and
+// ListenStatusChanges subscribes the backend and
 // gets online and offline status changes from it
 func (s *Session) ListenStatusChanges() chan Event {
 	return s.backend.ListenStatusChanges()
