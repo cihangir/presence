@@ -8,10 +8,13 @@ import (
 )
 
 func initRedisence(t *testing.T) *Session {
-	ses, err := New("localhost:6379", 10, time.Second*1)
+
+	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	ses := New(backend)
 	conn := ses.redis.Pool().Get()
 	conn.Do("CONFIG", "SET", "notify-keyspace-events Ex$")
 	if err := conn.Close(); err != nil {
