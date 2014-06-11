@@ -14,10 +14,8 @@ func initRedisence(t *testing.T) *Session {
 		t.Fatal(err)
 	}
 
-	ses := New(backend)
-	conn := ses.redis.Pool().Get()
-	conn.Do("CONFIG", "SET", "notify-keyspace-events Ex$")
-	if err := conn.Close(); err != nil {
+	ses, err := New(backend)
+	if err != nil {
 		t.Fatal(err)
 	}
 
