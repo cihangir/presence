@@ -86,7 +86,6 @@ func (s *Redis) Online(ids ...string) error {
 }
 
 // Offline sets given ids as offline, ignores any error
-// since not exist keys returned as nilErr
 func (s *Redis) Offline(ids ...string) error {
 	if len(ids) == 1 {
 		if s.redis.Expire(ids[0], time.Second*0) == nil {
