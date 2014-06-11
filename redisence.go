@@ -24,6 +24,15 @@ const (
 	Online
 )
 
+type Backend interface {
+	Online(...string) error
+	Offline(...string) error
+	Status(...string) ([]Event, error)
+	Close() error
+	Error() error
+	ListenStatusChanges() chan Event
+}
+
 // Event is the data type for
 // occuring events in the system
 type Event struct {
