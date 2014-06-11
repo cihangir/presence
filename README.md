@@ -52,7 +52,12 @@ import "github.com/siesta/redisence"
 ```go
 
 // create a presence system
-s, err := New(serverAddr, dbNumber, timeoutDuration)
+backend, err := NewRedis(serverAddr, dbNumber, timeoutDuration)
+if err != nil {
+    return err
+}
+
+s, err := New(backend)
 if err != nil {
     return err
 }

@@ -6,7 +6,12 @@ import (
 )
 
 func main() {
-	s, err := New("localhost:6379", 10, time.Second*1)
+	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
+	if err != nil {
+		panic(err)
+	}
+
+	s, err := New(backend)
 	if err != nil {
 		panic(err)
 	}

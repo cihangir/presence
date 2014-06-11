@@ -16,7 +16,12 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	session, err := redisence.New("localhost:6379", 10, time.Second*1)
+	backend, err := redisence.NewRedis("localhost:6379", 10, time.Second*1)
+	if err != nil {
+		panic(err)
+	}
+
+	session, err := redisence.New(backend)
 	if err != nil {
 		panic(err)
 	}
