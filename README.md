@@ -1,4 +1,4 @@
-# Redisence [![GoDoc](https://godoc.org/github.com/cihangir/redisence?status.png)](https://godoc.org/github.com/cihangir/redisence) [![Build Status](https://travis-ci.org/cihangir/redisence.png)](https://travis-ci.org/cihangir/redisence)
+# Redisence [![GoDoc](https://godoc.org/github.com/cihangir/redisence?status.png)](https://godoc.org/github.com/cihangir/redisence) [![Build Status](https://travis-ci.org/cihangir/presence.png)](https://travis-ci.org/cihangir/presence)
 
 Presence in Redis
 ------------------
