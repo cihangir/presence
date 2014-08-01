@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/siesta/redisence"
+	"github.com/siesta/presence"
 )
 
 func main() {
@@ -16,12 +16,12 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	backend, err := redisence.NewRedis("localhost:6379", 10, time.Second*1)
+	backend, err := presence.NewRedis("localhost:6379", 10, time.Second*1)
 	if err != nil {
 		panic(err)
 	}
 
-	session, err := redisence.New(backend)
+	session, err := presence.New(backend)
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func main() {
 	wg.Wait()
 }
 
-func pingdom(session *redisence.Session, start, end int) {
+func pingdom(session *presence.Session, start, end int) {
 	throttleCount := 1500
 	req := make([]string, throttleCount)
 	count := 0
@@ -61,7 +61,7 @@ func pingdom(session *redisence.Session, start, end int) {
 	}
 }
 
-func statuko(session *redisence.Session, start, end int) {
+func statuko(session *presence.Session, start, end int) {
 	throttleCount := 1500
 	req := make([]string, throttleCount)
 	count := 0
