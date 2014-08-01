@@ -1,4 +1,4 @@
-package redisence
+package presence
 
 import (
 	"fmt"

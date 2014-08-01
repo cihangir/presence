@@ -1,5 +1,5 @@
 // Package redisence provides simple user presence system
-package redisence
+package presence
 
 // Status defines what is the current status of a user
 // in presence system
