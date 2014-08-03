@@ -26,7 +26,9 @@ type Event struct {
 	Id string
 
 	// Status holds the changing type of event
-	Status Status
+	Status Status `redis:"status"`
+
+	SeenAt int64 `redis:"seenAt"`
 }
 
 type Session struct {
