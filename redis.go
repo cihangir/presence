@@ -11,8 +11,8 @@ import (
 	"github.com/koding/redis"
 )
 
-// Prefix for redisence package
-const RedisencePrefix = "redisence"
+// Prefix for Presence package
+const PresencePrefix = "presence"
 
 // Redis holds the required connection data for redis
 type Redis struct {
@@ -51,7 +51,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 	if err != nil {
 		return nil, err
 	}
-	redis.SetPrefix(RedisencePrefix)
+	redis.SetPrefix(PresencePrefix)
 
 	return &Redis{
 		redis:                redis,
@@ -62,7 +62,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 	}, nil
 }
 
-// Ping resets the expiration time for any given key
+// Online resets the expiration time for any given key
 // if key doesnt exists, it means user is now online and should be set as online
 // Whenever application gets any prob from a client
 // should call this function
@@ -137,7 +137,7 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 		}
 	}
 
-	// do not forget to close the connection
+	// do noet forget to close the connection
 	if err := c.Close(); err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	return res, nil
 }
 
-// MultipleStatus returns the current status multiple keys from system
+// Status returns the current status multiple keys from system
 func (s *Redis) Status(ids ...string) ([]Event, error) {
 	if len(ids) == 1 {
 		return s.singleStatus(ids[0])
@@ -317,10 +317,10 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 
 	switch n.Pattern {
 	case s.becameOfflinePattern:
-		e.Id = string(n.Data[len(RedisencePrefix)+1:])
+		e.Id = string(n.Data[len(PresencePrefix)+1:])
 		e.Status = Offline
 	case s.becameOnlinePattern:
-		e.Id = string(n.Data[len(RedisencePrefix)+1:])
+		e.Id = string(n.Data[len(PresencePrefix)+1:])
 		e.Status = Online
 	default:
 		//ignore other events
