@@ -22,11 +22,11 @@ func initFaultTolerantRedis(t *testing.T) *Session {
 }
 
 func TestFaultTolerantRedisOffline(t *testing.T) {
-	// sleep for evicting keys
-	defer time.Sleep(time.Second * 2)
 
 	s := initFaultTolerantRedis(t)
 	defer s.Close()
+	// sleep for evicting keys
+	defer time.Sleep(time.Second * 5)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -69,11 +69,11 @@ func TestFaultTolerantRedisOffline(t *testing.T) {
 }
 
 func TestFaultTolerantRedisOnline(t *testing.T) {
-	// sleep for evicting keys
-	defer time.Sleep(time.Second * 2)
 
 	s := initFaultTolerantRedis(t)
 	defer s.Close()
+	// sleep for evicting keys
+	defer time.Sleep(time.Second * 5)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
