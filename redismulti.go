@@ -2,6 +2,7 @@ package presence
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -266,58 +267,69 @@ func (f *FaultTolerantRedis) StarOfflineWatcher(gcInterval time.Duration) {
 
 			currentTime := time.Now().UTC().UnixNano()
 
-			// having a random key will cover the presence server crash, we will
-			// start working on the obtained key, will have the global lock, if
-			// server crashes, because of the TTL on global lock will be
-			// released and another presence server can get the same key and
-			// process it
-			//
-			// TODO, when we have multiple redis instance, get random redis
-			// connection
-			key, err := f.redis.RandomSetMember(OnlineKey)
-			if err == redis.ErrNil {
-				// if no item found in the online set, wait for next tick
-				continue
-			}
-
-			//
-			// TODO obtain a global lock for `key` if we can not get the global
-			// lock, continue working on another key
-			//
-
-			// get the locked key's info from multiple servers
-			val, err := f.redis.HashGetAll(key)
+			card, err := f.redis.Scard(OnlineKey)
 			if err != nil {
-				f.errChan <- err
 				continue
 			}
 
-			res := &Event{}
-			if err := redigo.ScanStruct(val, res); err != nil {
-				f.errChan <- err
-				continue
-			}
-
-			// if status is now online, check user's last seen at date
-			//  mark user as -offline- that means user
-			// was online(because it was in "online" set), but we marked it as
-			// offline between last check and current check
-			if res.Status == Online {
-				if res.SeenAt < currentTime-int64(f.inactiveDuration) {
-					// set user id
-					res.Id = key
-
-					// send user as Offline event
-					f.events <- *res
-
-					// remove user from online set
-					f.redis.RemoveSetMembers(OnlineKey, key)
+			for i := 0; i < card; i++ {
+				fmt.Println("willl run with this iter i-->", i)
+				// having a random key will cover the presence server crash, we will
+				// start working on the obtained key, will have the global lock, if
+				// server crashes, because of the TTL on global lock will be
+				// released and another presence server can get the same key and
+				// process it
+				//
+				// TODO, when we have multiple redis instance, get random redis
+				// connection
+				key, err := f.redis.PopSetMember(OnlineKey)
+				if err == redis.ErrNil {
+					// if no item found in the online set, wait for next tick
+					break
 				}
 
 				//
-				// TODO - release the global lock
+				// TODO obtain a global lock for `key` if we can not get the global
+				// lock, continue working on another key
 				//
+
+				// get the locked key's info from multiple servers
+				val, err := f.redis.HashGetAll(key)
+				if err != nil {
+					f.errChan <- err
+					continue
+				}
+
+				res := &Event{}
+				if err := redigo.ScanStruct(val, res); err != nil {
+					f.errChan <- err
+					continue
+				}
+
+				// if status is now online, check user's last seen at date
+				//  mark user as -offline- that means user
+				// was online(because it was in "online" set), but we marked it as
+				// offline between last check and current check
+				if res.Status == Online {
+					if res.SeenAt < currentTime-int64(f.inactiveDuration) {
+						// set user id
+						res.Id = key
+						res.Status = Offline
+						// send user as Offline event
+						f.events <- *res
+
+						// remove user from online set
+						f.redis.RemoveSetMembers(OnlineKey, key)
+					} else {
+						f.redis.AddSetMembers(OnlineKey, key)
+					}
+
+					//
+					// TODO - release the global lock
+					//
+				}
 			}
+
 		}
 	}()
 }
