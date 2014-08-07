@@ -144,7 +144,7 @@ func TestFaultTolerantRedisTTL(t *testing.T) {
 
 		// close connection after 3 seconds, we should have all the events at
 		// this point
-		time.AfterFunc(time.Second*3, func() {
+		time.AfterFunc(time.Second*5, func() {
 			s.Close()
 		})
 

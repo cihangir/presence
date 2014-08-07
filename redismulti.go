@@ -2,7 +2,6 @@ package presence
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -273,7 +272,6 @@ func (f *FaultTolerantRedis) StarOfflineWatcher(gcInterval time.Duration) {
 			}
 
 			for i := 0; i < card; i++ {
-				fmt.Println("willl run with this iter i-->", i)
 				// having a random key will cover the presence server crash, we will
 				// start working on the obtained key, will have the global lock, if
 				// server crashes, because of the TTL on global lock will be
