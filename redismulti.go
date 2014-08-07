@@ -310,6 +310,17 @@ func (f *FaultTolerantRedis) StarOfflineWatcher(gcInterval time.Duration) {
 				// offline between last check and current check
 				if res.Status == Online {
 					if res.SeenAt < currentTime-int64(f.inactiveDuration) {
+
+						err = setLatestStatus(
+							f.redis,
+							strconv.FormatInt(currentTime, 10),
+							"0",
+							key,
+						)
+						if err != nil {
+							continue
+						}
+
 						// set user id
 						res.Id = key
 						res.Status = Offline
@@ -317,7 +328,7 @@ func (f *FaultTolerantRedis) StarOfflineWatcher(gcInterval time.Duration) {
 						f.events <- *res
 
 						// remove user from online set
-						f.redis.RemoveSetMembers(OnlineKey, key)
+						// f.redis.RemoveSetMembers(OnlineKey, key)
 					} else {
 						f.redis.AddSetMembers(OnlineKey, key)
 					}
