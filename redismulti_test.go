@@ -22,6 +22,9 @@ func initFaultTolerantRedis(t *testing.T) *Session {
 }
 
 func TestFaultTolerantRedisOffline(t *testing.T) {
+	// sleep for evicting keys
+	defer time.Sleep(time.Second * 2)
+
 	s := initFaultTolerantRedis(t)
 	defer s.Close()
 
@@ -63,12 +66,12 @@ func TestFaultTolerantRedisOffline(t *testing.T) {
 	if offlineCount != len(offlines) {
 		t.Fatal("offline count is not %d, it is %d", len(offlines), offlineCount)
 	}
-	// sleep for evicting keys
-	time.Sleep(time.Second * 1)
-
 }
 
 func TestFaultTolerantRedisOnline(t *testing.T) {
+	// sleep for evicting keys
+	defer time.Sleep(time.Second * 2)
+
 	s := initFaultTolerantRedis(t)
 	defer s.Close()
 
@@ -112,8 +115,6 @@ func TestFaultTolerantRedisOnline(t *testing.T) {
 		t.Fatal("online count is not %d, it is %d", len(onlines), onlineCount)
 	}
 
-	// sleep for evicting keys
-	time.Sleep(time.Second * 1)
 }
 
 func TestFaultTolerantRedisStatus(t *testing.T) {
@@ -128,43 +129,44 @@ func TestFaultTolerantRedisStatus(t *testing.T) {
 
 func TestFaultTolerantRedisTTL(t *testing.T) {
 	s := initFaultTolerantRedis(t)
-	defer s.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	onlines := []string{"6", "7", "8", "9", "10"}
+
 	// first pass for onlines
 	// second pass for offlines
 	requiredEventCount := len(onlines) * 2
 
-	eventCount := 0
 	go func() {
 		defer wg.Done()
-		e := s.ListenStatusChanges()
+
+		// close connection after 3 seconds, we should have all the events at
+		// this point
+		time.AfterFunc(time.Second*3, func() {
+			s.Close()
+		})
+
 		for {
-			requiredEventCount--
 			select {
-			case status, ok := <-e:
+			case _, ok := <-s.ListenStatusChanges():
 				if !ok {
 					return
+				} else {
+					requiredEventCount--
 				}
-				if status.Status == Online {
-					eventCount++
-				}
-			case <-time.After(time.Second * 2):
-				return
 			}
 		}
 	}()
 
 	err := s.Online(onlines...)
 	if err != nil {
-		t.Error("error should be nil while setting users online %s", err)
+		t.Errorf("error should be nil while setting users online %s", err)
 	}
 	wg.Wait()
 
 	if requiredEventCount != 0 {
-		t.Fatal("decreased event count is not 0, it is %d", requiredEventCount)
+		t.Errorf("decreased event count is not 0, it is %d", requiredEventCount)
 	}
 }
