@@ -22,13 +22,14 @@ type Backend interface {
 // Event is the data type for
 // occuring events in the system
 type Event struct {
-	// Id is the given key by the application
-	Id string
+	// ID is the given key by the application
+	ID string
 
 	// Status holds the changing type of event
 	Status Status
 }
 
+// Session holds the backend and provides accessor methods for communication
 type Session struct {
 	// holds the interface
 	backend Backend

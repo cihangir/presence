@@ -230,7 +230,7 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 		}
 
 		res[i] = Event{
-			Id: ids[i],
+			ID: ids[i],
 			// cast redis response to Status
 			Status: Status(status),
 		}
@@ -269,7 +269,7 @@ func (s *Redis) close() error {
 func (s *Redis) singleStatus(id string) ([]Event, error) {
 	res := make([]Event, 1)
 	res[0] = Event{
-		Id:     id,
+		ID:     id,
 		Status: Offline,
 	}
 
@@ -317,10 +317,10 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 
 	switch n.Pattern {
 	case s.becameOfflinePattern:
-		e.Id = string(n.Data[len(RedisencePrefix)+1:])
+		e.ID = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Offline
 	case s.becameOnlinePattern:
-		e.Id = string(n.Data[len(RedisencePrefix)+1:])
+		e.ID = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Online
 	default:
 		//ignore other events
