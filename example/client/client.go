@@ -1,3 +1,4 @@
+// Package main show a simple client implementation
 package main
 
 import (

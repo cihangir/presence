@@ -1,3 +1,4 @@
+// Package presence provides simple user presence system
 package presence
 
 import (
