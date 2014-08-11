@@ -1,4 +1,4 @@
-// Package redisence provides simple user presence system
+// Package presence provides simple user presence system
 package presence
 
 // Status defines what is the current status of a user
@@ -6,10 +6,14 @@ package presence
 type Status int
 
 const (
+	// Offline is for displaying user as offline in the system
 	Offline Status = iota
+	// Online is for displaying user as online in the system
 	Online
 )
 
+// Backend represents basic interface for all required backend operations for
+// presence package
 type Backend interface {
 	Online(...string) error
 	Offline(...string) error
