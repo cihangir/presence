@@ -44,7 +44,7 @@ type Redis struct {
 	mu sync.Mutex
 }
 
-// New creates a Redis for any broker system that is architected to use,
+// NewRedis creates a Redis for any broker system that is architected to use,
 // communicate, forward events to the presence system
 func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, error) {
 	redis, err := redis.NewRedisSession(&redis.RedisConf{Server: server, DB: db})
