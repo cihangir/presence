@@ -62,7 +62,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 	}, nil
 }
 
-// Ping resets the expiration time for any given key
+// Online resets the expiration time for any given key
 // if key doesnt exists, it means user is now online and should be set as online
 // Whenever application gets any prob from a client
 // should call this function
@@ -189,7 +189,7 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	return res, nil
 }
 
-// MultipleStatus returns the current status multiple keys from system
+// Status returns the current status multiple keys from system
 func (s *Redis) Status(ids ...string) ([]Event, error) {
 	if len(ids) == 1 {
 		return s.singleStatus(ids[0])
