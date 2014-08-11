@@ -102,7 +102,7 @@ func (s *Redis) Offline(ids ...string) error {
 // request
 func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 	if len(ids) != len(existance) {
-		return fmt.Errorf("Length is not same Ids: %d Existance: %d", len(ids), len(existance))
+		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
 
 	// cache inactive duration
@@ -249,7 +249,7 @@ func (s *Redis) close() error {
 	defer s.mu.Unlock()
 
 	if s.closed {
-		return errors.New("Closing of already closed connection")
+		return errors.New("closing of already closed connection")
 	}
 
 	s.closed = true

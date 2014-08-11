@@ -60,7 +60,7 @@ func TestOnlineStatus(t *testing.T) {
 	}
 
 	if status[0].Status != Online {
-		t.Fatal(errors.New("User should be active"))
+		t.Fatal(errors.New("user should be active"))
 	}
 }
 
@@ -79,7 +79,7 @@ func TestOfflineStatus(t *testing.T) {
 	}
 
 	if status[0].Status != Offline {
-		t.Fatal(errors.New("User should be offline"))
+		t.Fatal(errors.New("user should be offline"))
 	}
 }
 
@@ -97,7 +97,7 @@ func TestMultiStatusAllOnline(t *testing.T) {
 	}
 	for _, st := range status {
 		if st.Status != Online {
-			t.Fatal(errors.New("User should be active"))
+			t.Fatal(errors.New("user should be active"))
 		}
 	}
 }
@@ -117,7 +117,7 @@ func TestMultiStatusAllOffline(t *testing.T) {
 
 	for _, st := range status {
 		if st.Status != Offline {
-			t.Fatal(errors.New("User should be offline"))
+			t.Fatal(errors.New("user should be offline"))
 		}
 	}
 }
@@ -136,7 +136,7 @@ func TestStatusWithTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 	if status[0].Status == Online {
-		t.Fatal(errors.New("User should not be active"))
+		t.Fatal(errors.New("user should not be active"))
 	}
 }
 
@@ -231,7 +231,7 @@ func TestMultiOfflineWithMultiStatus(t *testing.T) {
 
 	for _, st := range status {
 		if st.Status != Offline {
-			t.Fatal(errors.New("User should be offline"))
+			t.Fatal(errors.New("user should be offline"))
 		}
 	}
 }
