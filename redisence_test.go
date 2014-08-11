@@ -182,17 +182,13 @@ func TestSubscriptions(t *testing.T) {
 
 	if onlineCount != 3 {
 		t.Fatal(
-			errors.New(
-				fmt.Sprintf("online count should be 3 it is %d", onlineCount),
-			),
+			fmt.Errorf("online count should be 3 it is %d", onlineCount),
 		)
 	}
 
 	if offlineCount != 3 {
 		t.Fatal(
-			errors.New(
-				fmt.Sprintf("offline count should be 3 it is %d", offlineCount),
-			),
+			fmt.Errorf("offline count should be 3 it is %d", offlineCount),
 		)
 	}
 }
