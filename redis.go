@@ -13,7 +13,7 @@ import (
 )
 
 // Prefix for redisence package
-const RedisencePrefix = "redisence"
+var RedisencePrefix = "redisence"
 
 // Redis holds the required connection data for redis
 type Redis struct {
