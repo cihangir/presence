@@ -335,6 +335,6 @@ func (s *Redis) inactiveDurationString() string {
 }
 
 // Error returns error if it happens while listening  to status changes
-func (s *Redis) Error() error {
-	return <-s.errChan
+func (s *Redis) Error() chan error {
+	return s.errChan
 }

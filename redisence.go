@@ -8,6 +8,7 @@ type Status int
 const (
 	// Offline is for displaying user as offline in the system
 	Offline Status = iota
+
 	// Online is for displaying user as online in the system
 	Online
 )
@@ -19,7 +20,7 @@ type Backend interface {
 	Offline(...string) error
 	Status(...string) ([]Event, error)
 	Close() error
-	Error() error
+	Error() chan error
 	ListenStatusChanges() chan Event
 }
 
@@ -66,7 +67,7 @@ func (s *Session) Close() error {
 }
 
 // Error returns error if it happens while listening  to status changes
-func (s *Session) Error() error {
+func (s *Session) Error() chan error {
 	return s.backend.Error()
 }
 
