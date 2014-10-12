@@ -5,34 +5,36 @@ import (
 	"time"
 )
 
-func main() {
+func ExampleListenStatusChanges() {
 	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 
 	s, err := New(backend)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 
 	go func() {
-		time.Sleep(time.Second * 1)
-		s.Online("id")
-		time.Sleep(time.Second * 1)
-		s.Online("id")
-		s.Online("id2")
-		s.Online("id2")
-		s.Online("id2")
-		s.Online("id3")
+		for event := range s.ListenStatusChanges() {
+			switch event.Status {
+			case Online:
+				fmt.Println(event)
+			case Offline:
+				fmt.Println(event)
+			}
+		}
 	}()
 
-	for event := range s.ListenStatusChanges() {
-		switch event.Status {
-		case Online:
-			fmt.Println(event)
-		case Offline:
-			fmt.Println(event)
-		}
-	}
+	go func() {
+		s.Online("id")
+	}()
+
+	// wait for events
+	<-time.After(time.Second * 2)
+
+	// Output:
+	// {id ONLINE}
+	// {id OFFLINE}
 }
