@@ -1,3 +1,5 @@
 language: go
 services:
   - redis-server
+after_success:
+  - coveralls
