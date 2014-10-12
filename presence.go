@@ -5,6 +5,18 @@ package presence
 // in presence system
 type Status int
 
+func (s Status) String() string {
+	switch s {
+	case Offline:
+		return "OFFLINE"
+	case Online:
+		return "ONLINE"
+
+	}
+
+	return "UNKNOWN"
+}
+
 const (
 	// Offline is for displaying user as offline in the system
 	Offline Status = iota
