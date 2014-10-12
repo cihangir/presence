@@ -6,7 +6,7 @@ import (
 )
 
 func ExampleListenStatusChanges() {
-	backend, err := NewRedis("192.168.59.103:6381", 10, time.Second*1)
+	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
