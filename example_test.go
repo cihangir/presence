@@ -6,9 +6,19 @@ import (
 )
 
 func ExampleListenStatusChanges() {
-	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
+	backend, err := NewRedis("192.168.59.103:6381", 10, time.Second*1)
 	if err != nil {
 		fmt.Println(err.Error())
+	}
+
+	// adjust config for redis instance
+	c := backend.(*Redis).redis.Pool().Get()
+	if _, err := c.Do("CONFIG", "SET", "notify-keyspace-events", "Ex$"); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := c.Close(); err != nil {
+		fmt.Println(err)
 	}
 
 	s, err := New(backend)
