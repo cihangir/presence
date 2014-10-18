@@ -68,19 +68,9 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 
 // Online resets the expiration time for any given key
 // if key doesnt exists, it means user is now online and should be set as online
-// Whenever application gets any prob from a client
+// Whenever application gets any probe from a client
 // should call this function
 func (s *Redis) Online(ids ...string) error {
-	if len(ids) == 1 {
-		// if member exits increase ttl
-		if s.redis.Expire(ids[0], s.inactiveDuration) == nil {
-			return nil
-		}
-
-		// if member doesnt exist set it
-		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
-	}
-
 	existance, err := s.sendMultiExpire(ids, s.inactiveDuration)
 	if err != nil {
 		return err
@@ -89,15 +79,14 @@ func (s *Redis) Online(ids ...string) error {
 	return s.sendMultiSetIfRequired(ids, existance)
 }
 
-// Offline sets given ids as offline, ignores any error
+// Offline sets given ids as offline
 func (s *Redis) Offline(ids ...string) error {
-	if len(ids) == 1 {
-		if s.redis.Expire(ids[0], time.Second*0) == nil {
-			return nil
-		}
+	const zeroTimeString = "0"
+	_, err := s.sendMultiExpire(ids, zeroTimeString)
+	if err != nil {
+		return err
 	}
 
-	s.sendMultiExpire(ids, "0")
 	return nil
 }
 
@@ -195,10 +184,6 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 
 // Status returns the current status multiple keys from system
 func (s *Redis) Status(ids ...string) ([]Event, error) {
-	if len(ids) == 1 {
-		return s.singleStatus(ids[0])
-	}
-
 	// get one connection from pool
 	c := s.redis.Pool().Get()
 
@@ -267,21 +252,6 @@ func (s *Redis) close() error {
 	}
 
 	return s.redis.Close()
-}
-
-// Status returns the current status a key from system
-func (s *Redis) singleStatus(id string) ([]Event, error) {
-	res := make([]Event, 1)
-	res[0] = Event{
-		ID:     id,
-		Status: Offline,
-	}
-
-	if s.redis.Exists(id) {
-		res[0].Status = Online
-	}
-
-	return res, nil
 }
 
 // ListenStatusChanges subscribes with a pattern to the redis and
