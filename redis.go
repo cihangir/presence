@@ -24,7 +24,7 @@ type Redis struct {
 	redis *redis.RedisSession
 
 	// inactiveDuration specifies no-probe allowance time
-	inactiveDuration time.Duration
+	inactiveDuration string
 
 	// receiving offline events pattern
 	becameOfflinePattern string
@@ -61,7 +61,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 		redis:                redis,
 		becameOfflinePattern: fmt.Sprintf("__keyevent@%d__:expired", db),
 		becameOnlinePattern:  fmt.Sprintf("__keyevent@%d__:set", db),
-		inactiveDuration:     inactiveDuration,
+		inactiveDuration:     strconv.Itoa(int(inactiveDuration.Seconds())),
 		errChan:              make(chan error, 1),
 	}, nil
 }
@@ -81,7 +81,7 @@ func (s *Redis) Online(ids ...string) error {
 		return s.redis.Setex(ids[0], s.inactiveDuration, ids[0])
 	}
 
-	existance, err := s.sendMultiExpire(ids, s.inactiveDurationString())
+	existance, err := s.sendMultiExpire(ids, s.inactiveDuration)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 		}
 
 		notExistsCount++
-		c.Send("SETEX", s.redis.AddPrefix(ids[i]), seconds, ids[i])
+		c.Send("SETEX", s.redis.AddPrefix(ids[i]), s.inactiveDuration, ids[i])
 	}
 
 	// execute multi command if only we flushed some to connection
@@ -337,10 +337,6 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	}
 
 	return e
-}
-
-func (s *Redis) inactiveDurationString() string {
-	return strconv.Itoa(int(s.inactiveDuration.Seconds()))
 }
 
 // Error returns error if it happens while listening  to status changes
