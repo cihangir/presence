@@ -1,12 +1,26 @@
 package presence
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
+
+var nextId chan string
+var testTimeoutDuration = time.Second * 1
+
+func init() {
+	nextId = make(chan string)
+	go func() {
+		id := 0
+		for {
+			id++
+			nextId <- "id" + strconv.Itoa(id)
+		}
+	}()
+}
 
 func initPresence() (*Session, error) {
 	connStr := os.Getenv("REDIS_URI")
@@ -14,8 +28,14 @@ func initPresence() (*Session, error) {
 		connStr = "localhost:6379"
 	}
 
-	backend, err := NewRedis(connStr, 10, time.Second*1)
+	backend, err := NewRedis(connStr, 10, testTimeoutDuration)
 	if err != nil {
+		return nil, err
+	}
+
+	// adjust config for redis instance
+	c := backend.(*Redis).redis.Pool().Get()
+	if _, err := c.Do("CONFIG", "SET", "notify-keyspace-events", "Ex$"); err != nil {
 		return nil, err
 	}
 
@@ -38,35 +58,77 @@ func withConn(f func(s *Session)) error {
 	return s.Close()
 }
 
-func TestSinglePing(t *testing.T) {
+func TestOnline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		if err := s.Online("id"); err != nil {
-			t.Fatal(err)
+		id := <-nextId
+		if err := s.Online(id); err != nil {
+			t.Fatalf("non existing id can be set as online, but got err: %s", err.Error())
+		}
+
+		if err := s.Online(id); err != nil {
+			t.Fatalf("existing id can be set as online again, but got err: %s", err.Error())
 		}
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
 
-func TestMultiPing(t *testing.T) {
+func TestOnlineMultiple(t *testing.T) {
 	err := withConn(func(s *Session) {
-		if err := s.Online("id", "id2"); err != nil {
-			t.Fatal(err)
+		ids := []string{<-nextId, <-nextId}
+		if err := s.Online(ids...); err != nil {
+			t.Fatalf("non existing ids can be set as online, but got err: %s", err.Error())
+		}
+
+		if err := s.Online(ids...); err != nil {
+			t.Fatalf("existing ids can be set as online again, but got err: %s", err.Error())
 		}
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
 
-func TestOnlineStatus(t *testing.T) {
+func TestOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := "id3"
+		id := <-nextId
+		if err := s.Offline(id); err != nil {
+			t.Fatalf("non existing id can be set as offline, but got err: %s", err.Error())
+		}
+
+		if err := s.Offline(id); err != nil {
+			t.Fatalf("existing id can be set as offline again, but got err: %s", err.Error())
+		}
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestOfflineMultiple(t *testing.T) {
+	err := withConn(func(s *Session) {
+		ids := []string{<-nextId, <-nextId}
+		if err := s.Offline(ids...); err != nil {
+			t.Fatalf("non existing ids can be set as offline, but got err: %s", err.Error())
+		}
+
+		if err := s.Offline(ids...); err != nil {
+			t.Fatalf("existing ids can be set as offline again, but got err: %s", err.Error())
+		}
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStatusOnline(t *testing.T) {
+	err := withConn(func(s *Session) {
+		id := <-nextId
 		if err := s.Online(id); err != nil {
 			t.Fatal(err)
 		}
@@ -88,15 +150,15 @@ func TestOnlineStatus(t *testing.T) {
 	}
 }
 
-func TestOfflineStatus(t *testing.T) {
+func TestStatusOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
 
-		id := "id4"
-		if err := s.Online(id); err != nil {
+		id := <-nextId
+		if err := s.Offline(id); err != nil {
 			t.Fatal(err)
 		}
 
-		status, err := s.Status("id5")
+		status, err := s.Status(id)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,16 +174,19 @@ func TestOfflineStatus(t *testing.T) {
 	}
 }
 
-func TestMultiStatusAllOnline(t *testing.T) {
+func TestStatusMultiAllOnline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		if err := s.Online("id6", "id7"); err != nil {
+		ids := []string{<-nextId, <-nextId}
+		// mark all of them as online first
+		if err := s.Online(ids...); err != nil {
 			t.Fatal(err)
 		}
 
-		status, err := s.Status([]string{"id6", "id7"}...)
+		status, err := s.Status(ids...)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		for _, res := range status {
 			if res.Status != Online {
 				t.Fatalf("%s should be %s, but it is %s", res.ID, Online, res.Status)
@@ -134,13 +199,16 @@ func TestMultiStatusAllOnline(t *testing.T) {
 	}
 }
 
-func TestMultiStatusAllOffline(t *testing.T) {
+func TestStatusMultiAllOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		if err := s.Online("id8", "id9"); err != nil {
+		ids := []string{<-nextId, <-nextId}
+
+		// mark all of them as offline first
+		if err := s.Offline(ids...); err != nil {
 			t.Fatal(err)
 		}
 
-		status, err := s.Status([]string{"id10", "id11"}...)
+		status, err := s.Status(ids...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -157,13 +225,98 @@ func TestMultiStatusAllOffline(t *testing.T) {
 	}
 }
 
+func TestStatusMultiMixed(t *testing.T) {
+	err := withConn(func(s *Session) {
+		onlineId := <-nextId
+		offlineId := <-nextId
+
+		ids := []string{onlineId, offlineId}
+
+		if err := s.Online(onlineId); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := s.Offline(offlineId); err != nil {
+			t.Fatal(err)
+		}
+
+		status, err := s.Status(ids...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if status[0].Status != Online {
+			t.Fatalf("%s should be %s, but it is %s", status[0].ID, Online, status[0].Status)
+		}
+		if status[1].Status != Offline {
+			t.Fatalf("%s should be %s, but it is %s", status[1].ID, Offline, status[0].Status)
+		}
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStatusOrder(t *testing.T) {
+	err := withConn(func(s *Session) {
+		ids := []string{<-nextId, <-nextId}
+
+		if err := s.Online(ids...); err != nil {
+			t.Fatal(err)
+		}
+
+		status, err := s.Status(ids...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for i := range status {
+			if status[i].ID != ids[i] {
+				t.Fatalf("%dth status should be %s, but it is %s", i, ids[i], status[i].ID)
+			}
+		}
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStatusLen(t *testing.T) {
+	err := withConn(func(s *Session) {
+		ids := []string{<-nextId, <-nextId}
+
+		if err := s.Online(ids...); err != nil {
+			t.Fatal(err)
+		}
+
+		status, err := s.Status(ids...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(status) != len(ids) {
+			t.Fatalf("Status response len should be: %d, but got: %d", len(ids), len(status))
+		}
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestStatusWithTimeout(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := "12"
+		id := <-nextId
 		if err := s.Online(id); err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(time.Second * 2)
+
+		// sleep until expiration
+		time.Sleep(testTimeoutDuration)
+
+		// get the status of the id
 		status, err := s.Status(id)
 		if err != nil {
 			t.Fatal(err)
@@ -181,105 +334,44 @@ func TestStatusWithTimeout(t *testing.T) {
 }
 
 func TestSubscriptions(t *testing.T) {
-	t.Skip("Skipped to travis")
-	s, err := initPresence()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for all keys to expire
-	time.Sleep(time.Second * 1)
-
-	id1 := "13"
-	id2 := "14"
-	id3 := "15"
-
-	time.AfterFunc(time.Second*5, func() {
-		err := s.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	time.AfterFunc(time.Second*1, func() {
-		err := s.Online(id1, id2, id3)
-		if err != nil {
-			t.Fatal(err)
-		}
-		// err = s.Offline(id1, id2, id3)
-		// if err != nil {
-		//  t.Fatal(err)
-		// }
-	})
-
-	onlineCount := 0
-	offlineCount := 0
-	for event := range s.ListenStatusChanges() {
-		switch event.Status {
-		case Online:
-			onlineCount++
-		case Offline:
-			offlineCount++
-		}
-	}
-
-	if onlineCount != 3 {
-		t.Fatal(
-			fmt.Errorf("online count should be 3 it is %d", onlineCount),
-		)
-	}
-
-	if offlineCount != 3 {
-		t.Fatal(
-			fmt.Errorf("offline count should be 3 it is %d", offlineCount),
-		)
-	}
-}
-
-func TestJustMultiOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		if err := s.Offline("id16", "id17"); err != nil {
-			t.Fatal(err)
-		}
-	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+		ids := []string{<-nextId, <-nextId, <-nextId}
 
-func TestMultiOnlineAndOfflineTogether(t *testing.T) {
-	err := withConn(func(s *Session) {
-		if err := s.Online("id18", "id19"); err != nil {
-			t.Fatal(err)
-		}
-		if err := s.Offline("id18", "id19"); err != nil {
-			t.Fatal(err)
-		}
-	})
+		// sleep until expiration
+		time.Sleep(testTimeoutDuration)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestMultiOfflineWithMultiStatus(t *testing.T) {
-	err := withConn(func(s *Session) {
-		if err := s.Online("id20", "id21"); err != nil {
-			t.Fatal(err)
-		}
-		if err := s.Offline("id20", "id21"); err != nil {
-			t.Fatal(err)
-		}
-		status, err := s.Status([]string{"id20", "id21"}...)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, st := range status {
-			if st.Status != Offline {
-				t.Fatal(errors.New("user should be offline"))
+		onlineCount := 0
+		offlineCount := 0
+		go func() {
+			for event := range s.ListenStatusChanges() {
+				switch event.Status {
+				case Online:
+					onlineCount++
+				case Offline:
+					offlineCount++
+				}
 			}
+		}()
+
+		err := s.Online(ids...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// sleep until expiration
+		time.Sleep(testTimeoutDuration * 2)
+
+		if onlineCount != len(ids) {
+			t.Fatal(
+				fmt.Errorf("online count should be: %d, but it is: %d", len(ids), onlineCount),
+			)
+		}
+
+		if offlineCount != len(ids) {
+			t.Fatal(
+				fmt.Errorf("offline count should be: %d, but it is: %d", len(ids), offlineCount),
+			)
 		}
 	})
 
