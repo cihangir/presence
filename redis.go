@@ -12,14 +12,16 @@ import (
 	"github.com/koding/redis"
 )
 
-// Prefix for presence package
-var PresencePrefix = "presence"
+var (
+	// Prefix for presence package
+	PresencePrefix = "presence"
 
-// Error for stating the event id is not valid
-var ErrInvalidID = errors.New("invalid id")
+	// Error for stating the event id is not valid
+	ErrInvalidID = errors.New("invalid id")
 
-// Error for stating the event status is not valid
-var ErrInvalidStatus = errors.New("invalid status")
+	// Error for stating the event status is not valid
+	ErrInvalidStatus = errors.New("invalid status")
+)
 
 // Redis holds the required connection data for redis
 type Redis struct {
