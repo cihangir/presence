@@ -15,6 +15,9 @@ import (
 // Prefix for presence package
 var PresencePrefix = "presence"
 
+// Error for stating that the event id is not valid
+var ErrInvalidID = errors.New("invalid id")
+
 // Redis holds the required connection data for redis
 type Redis struct {
 	// main redis connection
