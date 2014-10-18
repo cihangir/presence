@@ -323,8 +323,8 @@ func TestStatusWithTimeout(t *testing.T) {
 		}
 
 		res := status[0]
-		if res.Status == Online {
-			t.Fatalf("%s should be %s, but it is %s", res.ID, Online, res.Status)
+		if res.Status != Offline {
+			t.Fatalf("%s should be %s, but it is %s", res.ID, Offline, res.Status)
 		}
 	})
 
