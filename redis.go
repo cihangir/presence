@@ -15,8 +15,11 @@ import (
 // Prefix for presence package
 var PresencePrefix = "presence"
 
-// Error for stating that the event id is not valid
+// Error for stating the event id is not valid
 var ErrInvalidID = errors.New("invalid id")
+
+// Error for stating the event status is not valid
+var ErrInvalidStatus = errors.New("invalid status")
 
 // Redis holds the required connection data for redis
 type Redis struct {
@@ -299,7 +302,8 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	case s.becameOnlinePattern:
 		e.Status = Online
 	default:
-		//ignore other events, if we get any
+		// todo - replace this with a custom err
+		s.errChan <- ErrInvalidStatus
 	}
 
 	return e
