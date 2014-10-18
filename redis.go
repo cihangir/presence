@@ -12,8 +12,8 @@ import (
 	"github.com/koding/redis"
 )
 
-// Prefix for redisence package
-var RedisencePrefix = "redisence"
+// Prefix for presence package
+var PresencePrefix = "presence"
 
 // Redis holds the required connection data for redis
 type Redis struct {
@@ -52,7 +52,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 	if err != nil {
 		return nil, err
 	}
-	redis.SetPrefix(RedisencePrefix)
+	redis.SetPrefix(PresencePrefix)
 
 	return &Redis{
 		redis:                redis,
@@ -316,15 +316,21 @@ func (s *Redis) listenEvents() {
 func (s *Redis) createEvent(n gredis.PMessage) Event {
 	e := Event{}
 
+	// if incoming data len is smaller than our prefix, do not process the event
+	if len(n.Data) < len(PresencePrefix) {
+		s.errChan <- ErrInvalidID
+		return e
+	}
+
+	e.ID = string(n.Data[len(PresencePrefix)+1:])
+
 	switch n.Pattern {
 	case s.becameOfflinePattern:
-		e.ID = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Offline
 	case s.becameOnlinePattern:
-		e.ID = string(n.Data[len(RedisencePrefix)+1:])
 		e.Status = Online
 	default:
-		//ignore other events
+		//ignore other events, if we get any
 	}
 
 	return e
