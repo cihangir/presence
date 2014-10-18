@@ -1,29 +1,36 @@
 // Package presence provides simple user presence system
 package presence
 
-// Status defines what is the current status of a user
-// in presence system
-type Status int
-
-func (s Status) String() string {
-	switch s {
-	case Offline:
-		return "OFFLINE"
-	case Online:
-		return "ONLINE"
-
-	}
-
-	return "UNKNOWN"
-}
-
 const (
 	// Offline is for displaying user as offline in the system
-	Offline Status = iota
+	Offline Status = iota + 1 // do not handle unset variable as offline
 
 	// Online is for displaying user as online in the system
 	Online
 )
+
+const (
+	online  = "ONLINE"
+	offline = "OFFLINE"
+	unknown = "UNKNOWN"
+)
+
+// Status defines what is the current status of a user in presence system
+type Status int
+
+// String implements the stringer interface
+func (s Status) String() string {
+	switch s {
+	case Offline:
+		return offline
+	case Online:
+		return online
+
+	}
+
+	// if status is not set or not a known value
+	return unknown
+}
 
 // Backend represents basic interface for all required backend operations for
 // presence package
@@ -36,8 +43,7 @@ type Backend interface {
 	ListenStatusChanges() chan Event
 }
 
-// Event is the data type for
-// occuring events in the system
+// Event is the data type for occuring events in the system
 type Event struct {
 	// ID is the given key by the application
 	ID string
@@ -83,8 +89,8 @@ func (s *Session) Error() chan error {
 	return s.backend.Error()
 }
 
-// ListenStatusChanges subscribes the backend and
-// gets online and offline status changes from it
+// ListenStatusChanges subscribes the backend and gets online and offline status
+// changes from it
 func (s *Session) ListenStatusChanges() chan Event {
 	return s.backend.ListenStatusChanges()
 }
