@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func ExampleListenStatusChanges() {
+func ExampleRedis_listenStatusChanges() {
 	connStr := os.Getenv("REDIS_URI")
 	if connStr == "" {
 		connStr = "localhost:6379"
