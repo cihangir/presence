@@ -95,6 +95,144 @@ func (s *Redis) Offline(ids ...string) error {
 	return nil
 }
 
+// Status returns the current status of multiple keys from system
+func (s *Redis) Status(ids ...string) ([]Event, error) {
+	// get one connection from pool
+	c := s.redis.Pool().Get()
+	// close connection
+	defer c.Close()
+
+	// init multi command
+	c.Send("MULTI")
+
+	// send expire command for all members
+	for _, id := range ids {
+		c.Send("EXISTS", s.redis.AddPrefix(id))
+	}
+
+	// execute command
+	r, err := c.Do("EXEC")
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := s.redis.Values(r)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]Event, len(values))
+	for i, value := range values {
+		status, err := s.redis.Int(value)
+		if err != nil {
+			return nil, err
+		}
+
+		res[i] = Event{
+			ID: ids[i],
+			// cast redis response to Status
+			Status: redisResToStatus[status],
+		}
+	}
+
+	return res, nil
+}
+
+// Error returns error if it happens while listening  to status changes
+func (s *Redis) Error() chan error {
+	return s.errChan
+}
+
+// Close closes the redis connection gracefully
+func (s *Redis) Close() error {
+	return s.close()
+}
+
+// ListenStatusChanges subscribes with a pattern to the redis and
+// gets online and offline status changes from it
+func (s *Redis) ListenStatusChanges() chan Event {
+	s.psc = s.redis.CreatePubSubConn()
+	s.psc.PSubscribe(s.becameOnlinePattern, s.becameOfflinePattern)
+
+	s.events = make(chan Event)
+	go s.listenEvents()
+	return s.events
+}
+
+var redisResToStatus = map[int]Status{
+	// redis exists response is 0 when the id is not in the system
+	0: Offline,
+
+	// redis exists response is 1 when the id is in the system
+	1: Online,
+}
+
+func (s *Redis) close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return errors.New("closing of already closed connection")
+	}
+
+	s.closed = true
+
+	if s.events != nil {
+		close(s.events)
+	}
+
+	if s.psc != nil {
+		s.psc.PUnsubscribe()
+	}
+
+	return s.redis.Close()
+}
+
+// createEvent Creates the event with the required properties
+func (s *Redis) listenEvents() {
+	for {
+		s.mu.Lock()
+		if s.closed {
+			s.mu.Unlock()
+			return
+		}
+		s.mu.Unlock()
+
+		switch n := s.psc.Receive().(type) {
+		case gredis.PMessage:
+			s.events <- s.createEvent(n)
+		case error:
+			s.errChan <- n
+			return
+		}
+	}
+}
+
+// createEvent Creates the event with the required properties
+func (s *Redis) createEvent(n gredis.PMessage) Event {
+	e := Event{}
+
+	// if incoming data len is smaller than our prefix, do not process the event
+	if len(n.Data) < len(PresencePrefix) {
+		s.errChan <- ErrInvalidID
+		return e
+	}
+
+	e.ID = string(n.Data[len(PresencePrefix)+1:])
+
+	switch n.Pattern {
+	case s.becameOfflinePattern:
+		e.Status = Offline
+	case s.becameOnlinePattern:
+		e.Status = Online
+	default:
+		// todo - replace this with a custom err
+		s.errChan <- ErrInvalidStatus
+	}
+
+	return e
+}
+
 // sendMultiSetIfRequired accepts set of ids and their existtance status
 // traverse over them and any key is not exists in db, set them in a multi/exec
 // request
@@ -176,142 +314,4 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	}
 
 	return res, nil
-}
-
-// Status returns the current status of multiple keys from system
-func (s *Redis) Status(ids ...string) ([]Event, error) {
-	// get one connection from pool
-	c := s.redis.Pool().Get()
-	// close connection
-	defer c.Close()
-
-	// init multi command
-	c.Send("MULTI")
-
-	// send expire command for all members
-	for _, id := range ids {
-		c.Send("EXISTS", s.redis.AddPrefix(id))
-	}
-
-	// execute command
-	r, err := c.Do("EXEC")
-	if err != nil {
-		return nil, err
-	}
-
-	values, err := s.redis.Values(r)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]Event, len(values))
-	for i, value := range values {
-		status, err := s.redis.Int(value)
-		if err != nil {
-			return nil, err
-		}
-
-		res[i] = Event{
-			ID: ids[i],
-			// cast redis response to Status
-			Status: redisResToStatus[status],
-		}
-	}
-
-	return res, nil
-}
-
-var redisResToStatus = map[int]Status{
-	// redis exists response is 0 when the id is not in the system
-	0: Offline,
-
-	// redis exists response is 1 when the id is in the system
-	1: Online,
-}
-
-// Close closes the redis connection gracefully
-func (s *Redis) Close() error {
-	return s.close()
-}
-
-func (s *Redis) close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.closed {
-		return errors.New("closing of already closed connection")
-	}
-
-	s.closed = true
-
-	if s.events != nil {
-		close(s.events)
-	}
-
-	if s.psc != nil {
-		s.psc.PUnsubscribe()
-	}
-
-	return s.redis.Close()
-}
-
-// ListenStatusChanges subscribes with a pattern to the redis and
-// gets online and offline status changes from it
-func (s *Redis) ListenStatusChanges() chan Event {
-	s.psc = s.redis.CreatePubSubConn()
-	s.psc.PSubscribe(s.becameOnlinePattern, s.becameOfflinePattern)
-
-	s.events = make(chan Event)
-	go s.listenEvents()
-	return s.events
-}
-
-// createEvent Creates the event with the required properties
-func (s *Redis) listenEvents() {
-	for {
-		s.mu.Lock()
-		if s.closed {
-			s.mu.Unlock()
-			return
-		}
-		s.mu.Unlock()
-
-		switch n := s.psc.Receive().(type) {
-		case gredis.PMessage:
-			s.events <- s.createEvent(n)
-		case error:
-			s.errChan <- n
-			return
-		}
-	}
-}
-
-// createEvent Creates the event with the required properties
-func (s *Redis) createEvent(n gredis.PMessage) Event {
-	e := Event{}
-
-	// if incoming data len is smaller than our prefix, do not process the event
-	if len(n.Data) < len(PresencePrefix) {
-		s.errChan <- ErrInvalidID
-		return e
-	}
-
-	e.ID = string(n.Data[len(PresencePrefix)+1:])
-
-	switch n.Pattern {
-	case s.becameOfflinePattern:
-		e.Status = Offline
-	case s.becameOnlinePattern:
-		e.Status = Online
-	default:
-		// todo - replace this with a custom err
-		s.errChan <- ErrInvalidStatus
-	}
-
-	return e
-}
-
-// Error returns error if it happens while listening  to status changes
-func (s *Redis) Error() chan error {
-	return s.errChan
 }
