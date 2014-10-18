@@ -59,8 +59,10 @@ func TestOnlineStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status[0].Status != Online {
-		t.Fatal(errors.New("user should be active"))
+	res := status[0]
+
+	if res.Status != Online {
+		t.Fatalf("%s should be %s, but it is %s", res.ID, Online, res.Status)
 	}
 }
 
@@ -78,8 +80,9 @@ func TestOfflineStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status[0].Status != Offline {
-		t.Fatal(errors.New("user should be offline"))
+	res := status[0]
+	if res.Status != Offline {
+		t.Fatalf("%s should be %s, but it is %s", res.ID, Offline, res.Status)
 	}
 }
 
@@ -95,9 +98,9 @@ func TestMultiStatusAllOnline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, st := range status {
-		if st.Status != Online {
-			t.Fatal(errors.New("user should be active"))
+	for _, res := range status {
+		if res.Status != Online {
+			t.Fatalf("%s should be %s, but it is %s", res.ID, Online, res.Status)
 		}
 	}
 }
@@ -115,9 +118,9 @@ func TestMultiStatusAllOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, st := range status {
-		if st.Status != Offline {
-			t.Fatal(errors.New("user should be offline"))
+	for _, res := range status {
+		if res.Status != Offline {
+			t.Fatalf("%s should be %s, but it is %s", res.ID, Offline, res.Status)
 		}
 	}
 }
@@ -135,8 +138,10 @@ func TestStatusWithTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status[0].Status == Online {
-		t.Fatal(errors.New("user should not be active"))
+
+	res := status[0]
+	if res.Status == Online {
+		t.Fatalf("%s should be %s, but it is %s", res.ID, Online, res.Status)
 	}
 }
 
