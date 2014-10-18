@@ -98,11 +98,10 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
 
-	// cache inactive duration
-	seconds := s.inactiveDurationString()
-
 	// get one connection from pool
 	c := s.redis.Pool().Get()
+	// do not forget to close the connection
+	defer c.Close()
 
 	// item count for non-existent members
 	notExistsCount := 0
@@ -130,11 +129,6 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 		}
 	}
 
-	// do not forget to close the connection
-	if err := c.Close(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -143,6 +137,8 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
+	// close connection
+	defer c.Close()
 
 	// init multi command
 	c.Send("MULTI")
@@ -155,11 +151,6 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	// execute command
 	r, err := c.Do("EXEC")
 	if err != nil {
-		return nil, err
-	}
-
-	// close connection
-	if err := c.Close(); err != nil {
 		return nil, err
 	}
 
@@ -186,6 +177,8 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 func (s *Redis) Status(ids ...string) ([]Event, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
+	// close connection
+	defer c.Close()
 
 	// init multi command
 	c.Send("MULTI")
@@ -198,11 +191,6 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 	// execute command
 	r, err := c.Do("EXEC")
 	if err != nil {
-		return nil, err
-	}
-
-	// close connection
-	if err := c.Close(); err != nil {
 		return nil, err
 	}
 
