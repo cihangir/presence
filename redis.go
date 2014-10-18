@@ -173,7 +173,7 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 	return res, nil
 }
 
-// Status returns the current status multiple keys from system
+// Status returns the current status of multiple keys from system
 func (s *Redis) Status(ids ...string) ([]Event, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
