@@ -2,11 +2,17 @@ package presence
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
 func ExampleListenStatusChanges() {
-	backend, err := NewRedis("localhost:6379", 10, time.Second*1)
+	connStr := os.Getenv("REDIS_URL")
+	if connStr == "" {
+		connStr = "localhost:6379"
+	}
+
+	backend, err := NewRedis(connStr, 10, time.Second*1)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
