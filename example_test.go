@@ -7,7 +7,7 @@ import (
 )
 
 func ExampleListenStatusChanges() {
-	connStr := os.Getenv("REDIS_URL")
+	connStr := os.Getenv("REDIS_URI")
 	if connStr == "" {
 		connStr = "localhost:6379"
 	}

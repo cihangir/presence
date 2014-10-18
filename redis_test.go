@@ -3,13 +3,18 @@ package presence
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
 
-func initRedisence() (*Session, error) {
-	backend, err := NewRedis("192.168.59.103:6381", 10, time.Second*1)
-	// backend, err := NewRedis("localhost:6379", 10, time.Second*1)
+func initPresence() (*Session, error) {
+	connStr := os.Getenv("REDIS_URI")
+	if connStr == "" {
+		connStr = "localhost:6379"
+	}
+
+	backend, err := NewRedis(connStr, 10, time.Second*1)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +28,7 @@ func initRedisence() (*Session, error) {
 }
 
 func withConn(f func(s *Session)) error {
-	s, err := initRedisence()
+	s, err := initPresence()
 	if err != nil {
 		return err
 	}
@@ -177,7 +182,7 @@ func TestStatusWithTimeout(t *testing.T) {
 
 func TestSubscriptions(t *testing.T) {
 	t.Skip("Skipped to travis")
-	s, err := initRedisence()
+	s, err := initPresence()
 	if err != nil {
 		t.Fatal(err)
 	}
