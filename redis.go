@@ -209,11 +209,19 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 		res[i] = Event{
 			ID: ids[i],
 			// cast redis response to Status
-			Status: Status(status),
+			Status: redisResToStatus[status],
 		}
 	}
 
 	return res, nil
+}
+
+var redisResToStatus = map[int]Status{
+	// redis exists response is 0 when the id is not in the system
+	0: Offline,
+
+	// redis exists response is 1 when the id is in the system
+	1: Online,
 }
 
 // Close closes the redis connection gracefully
