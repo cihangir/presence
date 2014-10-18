@@ -1,4 +1,4 @@
-// Package presence provides simple user presence system
+// Package presence provides an advanced presence system
 package presence
 
 const (
