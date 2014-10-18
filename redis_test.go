@@ -314,7 +314,7 @@ func TestStatusWithTimeout(t *testing.T) {
 		}
 
 		// sleep until expiration
-		time.Sleep(testTimeoutDuration)
+		time.Sleep(testTimeoutDuration * 2)
 
 		// get the status of the id
 		status, err := s.Status(id)
@@ -339,7 +339,7 @@ func TestSubscriptions(t *testing.T) {
 		ids := []string{<-nextId, <-nextId, <-nextId}
 
 		// sleep until expiration
-		time.Sleep(testTimeoutDuration)
+		time.Sleep(testTimeoutDuration * 2)
 
 		onlineCount := 0
 		offlineCount := 0
