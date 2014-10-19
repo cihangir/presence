@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-	id1 := <-nextId
-	id2 := <-nextId
 func TestErrorLen(t *testing.T) {
 	e := Error{}
+	id1 := <-nextID
+	id2 := <-nextID
 	err1 := errors.New(id1)
 	err2 := errors.New(id2)
 
@@ -21,9 +21,9 @@ func TestErrorLen(t *testing.T) {
 	}
 }
 
-	id := <-nextId
 func TestErrorEach(t *testing.T) {
 	e := Error{}
+	id := <-nextID
 	err := errors.New(id)
 
 	e.Append(id, err)
@@ -37,10 +37,10 @@ func TestErrorEach(t *testing.T) {
 	})
 }
 
-	id1 := <-nextId
-	id2 := <-nextId
 func TestErrorString(t *testing.T) {
 	e := Error{}
+	id1 := <-nextID
+	id2 := <-nextID
 	err1 := errors.New(id1)
 	err2 := errors.New(id2)
 
@@ -53,10 +53,10 @@ func TestErrorString(t *testing.T) {
 	}
 }
 
-	id1 := <-nextId
-	id2 := <-nextId
 func TestErrorHas(t *testing.T) {
 	e := Error{}
+	id1 := <-nextID
+	id2 := <-nextID
 	err1 := errors.New(id1)
 
 	e.Append(id1, err1)

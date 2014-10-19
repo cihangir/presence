@@ -7,7 +7,7 @@ func generateUserBatchs(batchSize int, count int) [][]string {
 	batch := make([]string, batchSize)
 
 	for i := 0; i < batchSize; i++ {
-		batch[i] = <-nextId
+		batch[i] = <-nextID
 	}
 
 	for n := 0; n < count; n++ {

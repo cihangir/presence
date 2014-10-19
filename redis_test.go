@@ -8,16 +8,16 @@ import (
 	"time"
 )
 
-var nextId chan string
+var nextID chan string
 var testTimeoutDuration = time.Second * 1
 
 func init() {
-	nextId = make(chan string)
+	nextID = make(chan string)
 	go func() {
 		id := 0
 		for {
 			id++
-			nextId <- "id" + strconv.Itoa(id)
+			nextID <- "id" + strconv.Itoa(id)
 		}
 	}()
 }
@@ -60,7 +60,7 @@ func withConn(f func(s *Session)) error {
 
 func TestOnline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := <-nextId
+		id := <-nextID
 		if err := s.Online(id); err != nil {
 			t.Fatalf("non existing id can be set as online, but got err: %s", err.Error())
 		}
@@ -77,7 +77,7 @@ func TestOnline(t *testing.T) {
 
 func TestOnlineMultiple(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 		if err := s.Online(ids...); err != nil {
 			t.Fatalf("non existing ids can be set as online, but got err: %s", err.Error())
 		}
@@ -94,7 +94,7 @@ func TestOnlineMultiple(t *testing.T) {
 
 func TestOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := <-nextId
+		id := <-nextID
 		if err := s.Offline(id); err != nil {
 			t.Fatalf("non existing id can be set as offline, but got err: %s", err.Error())
 		}
@@ -111,7 +111,7 @@ func TestOffline(t *testing.T) {
 
 func TestOfflineMultiple(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 		if err := s.Offline(ids...); err != nil {
 			t.Fatalf("non existing ids can be set as offline, but got err: %s", err.Error())
 		}
@@ -128,7 +128,7 @@ func TestOfflineMultiple(t *testing.T) {
 
 func TestStatusOnline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := <-nextId
+		id := <-nextID
 		if err := s.Online(id); err != nil {
 			t.Fatal(err)
 		}
@@ -153,7 +153,7 @@ func TestStatusOnline(t *testing.T) {
 func TestStatusOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
 
-		id := <-nextId
+		id := <-nextID
 		if err := s.Offline(id); err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +176,7 @@ func TestStatusOffline(t *testing.T) {
 
 func TestStatusMultiAllOnline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 		// mark all of them as online first
 		if err := s.Online(ids...); err != nil {
 			t.Fatal(err)
@@ -201,7 +201,7 @@ func TestStatusMultiAllOnline(t *testing.T) {
 
 func TestStatusMultiAllOffline(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 
 		// mark all of them as offline first
 		if err := s.Offline(ids...); err != nil {
@@ -227,16 +227,16 @@ func TestStatusMultiAllOffline(t *testing.T) {
 
 func TestStatusMultiMixed(t *testing.T) {
 	err := withConn(func(s *Session) {
-		onlineId := <-nextId
-		offlineId := <-nextId
+		onlineID := <-nextID
+		offlineID := <-nextID
 
-		ids := []string{onlineId, offlineId}
+		ids := []string{onlineID, offlineID}
 
-		if err := s.Online(onlineId); err != nil {
+		if err := s.Online(onlineID); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := s.Offline(offlineId); err != nil {
+		if err := s.Offline(offlineID); err != nil {
 			t.Fatal(err)
 		}
 
@@ -260,7 +260,7 @@ func TestStatusMultiMixed(t *testing.T) {
 
 func TestStatusOrder(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 
 		if err := s.Online(ids...); err != nil {
 			t.Fatal(err)
@@ -285,7 +285,7 @@ func TestStatusOrder(t *testing.T) {
 
 func TestStatusLen(t *testing.T) {
 	err := withConn(func(s *Session) {
-		ids := []string{<-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID}
 
 		if err := s.Online(ids...); err != nil {
 			t.Fatal(err)
@@ -308,7 +308,7 @@ func TestStatusLen(t *testing.T) {
 
 func TestStatusWithTimeout(t *testing.T) {
 	err := withConn(func(s *Session) {
-		id := <-nextId
+		id := <-nextID
 		if err := s.Online(id); err != nil {
 			t.Fatal(err)
 		}
@@ -336,7 +336,7 @@ func TestStatusWithTimeout(t *testing.T) {
 func TestSubscriptions(t *testing.T) {
 	err := withConn(func(s *Session) {
 
-		ids := []string{<-nextId, <-nextId, <-nextId}
+		ids := []string{<-nextID, <-nextID, <-nextID}
 
 		// sleep until expiration
 		time.Sleep(testTimeoutDuration * 2)
