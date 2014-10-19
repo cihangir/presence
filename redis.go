@@ -75,23 +75,34 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 // Whenever application gets any probe from a client
 // should call this function
 func (s *Redis) Online(ids ...string) error {
-	existance, err := s.sendMultiExpire(ids, s.inactiveDuration)
-	if err != nil {
+	existance, err := s.multiExpire(ids, s.inactiveDuration)
+	if err == nil {
+		return s.multiSetIfRequired(ids, existance, PresenceError{})
+	}
+
+	// if err is not a multi err, return it
+	e, ok := err.(PresenceError)
+	if !ok {
 		return err
 	}
 
-	return s.sendMultiSetIfRequired(ids, existance)
+	errs := s.multiSetIfRequired(ids, existance, e)
+	if errs != nil {
+		return errs
+	}
+
+	if e.Len() > 0 {
+		return e
+	}
+
+	return nil
 }
 
 // Offline sets given ids as offline
 func (s *Redis) Offline(ids ...string) error {
 	const zeroTimeString = "0"
-	_, err := s.sendMultiExpire(ids, zeroTimeString)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := s.multiExpire(ids, zeroTimeString)
+	return err
 }
 
 // Status returns the current status of multiple keys from system
@@ -232,10 +243,10 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	return e
 }
 
-// sendMultiSetIfRequired accepts set of ids and their existtance status
+// multiSetIfRequired accepts set of ids and their existtance status
 // traverse over them and any key is not exists in db, set them in a multi/exec
 // request
-func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
+func (s *Redis) multiSetIfRequired(ids []string, existance []int, e PresenceError) error {
 	if len(ids) != len(existance) {
 		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
@@ -251,6 +262,11 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 	for i, exists := range existance {
 		// `0` means, member doesnt exists in presence system
 		if exists != 0 {
+			continue
+		}
+
+		// if we got any error for the current id, do not process it
+		if e.Has(ids[i]) {
 			continue
 		}
 
@@ -274,9 +290,9 @@ func (s *Redis) sendMultiSetIfRequired(ids []string, existance []int) error {
 	return nil
 }
 
-// sendMultiExpire if the system tries to update more than one key at a time
+// multiExpire if the system tries to update more than one key at a time
 // inorder to leverage rtt, send multi expire
-func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
+func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
 	// close connection
@@ -301,15 +317,19 @@ func (s *Redis) sendMultiExpire(ids []string, duration string) ([]int, error) {
 		return nil, err
 	}
 
+	e := PresenceError{}
 	res := make([]int, len(values))
 	for i, value := range values {
 		res[i], err = s.redis.Int(value)
 		if err != nil {
-			// what about returning half-generated slice?
-			// instead of an empty one
-			return nil, err
+			e.Append(ids[i], err)
 		}
 
+	}
+
+	// if we got any error, return them all along with result set
+	if e.Len() > 0 {
+		return res, e
 	}
 
 	return res, nil
