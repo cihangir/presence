@@ -17,7 +17,7 @@ func TestErrorLen(t *testing.T) {
 	e.Append(id2, err2)
 
 	if e.Len() != 2 {
-		t.Fatalf("err len should be 2, but got:", e.Len())
+		t.Fatalf("err len should be 2, but got: %d", e.Len())
 	}
 }
 
