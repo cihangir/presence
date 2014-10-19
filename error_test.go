@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-func TestPresenceErrorLen(t *testing.T) {
-	e := PresenceError{}
 	id1 := <-nextId
 	id2 := <-nextId
+func TestErrorLen(t *testing.T) {
+	e := Error{}
 	err1 := errors.New(id1)
 	err2 := errors.New(id2)
 
@@ -21,9 +21,9 @@ func TestPresenceErrorLen(t *testing.T) {
 	}
 }
 
-func TestPresenceErrorEach(t *testing.T) {
-	e := PresenceError{}
 	id := <-nextId
+func TestErrorEach(t *testing.T) {
+	e := Error{}
 	err := errors.New(id)
 
 	e.Append(id, err)
@@ -37,10 +37,10 @@ func TestPresenceErrorEach(t *testing.T) {
 	})
 }
 
-func TestPresenceErrorString(t *testing.T) {
-	e := PresenceError{}
 	id1 := <-nextId
 	id2 := <-nextId
+func TestErrorString(t *testing.T) {
+	e := Error{}
 	err1 := errors.New(id1)
 	err2 := errors.New(id2)
 
@@ -53,10 +53,10 @@ func TestPresenceErrorString(t *testing.T) {
 	}
 }
 
-func TestPresenceErrorHas(t *testing.T) {
-	e := PresenceError{}
 	id1 := <-nextId
 	id2 := <-nextId
+func TestErrorHas(t *testing.T) {
+	e := Error{}
 	err1 := errors.New(id1)
 
 	e.Append(id1, err1)

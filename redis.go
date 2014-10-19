@@ -77,11 +77,11 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 func (s *Redis) Online(ids ...string) error {
 	existance, err := s.multiExpire(ids, s.inactiveDuration)
 	if err == nil {
-		return s.multiSetIfRequired(ids, existance, PresenceError{})
+		return s.multiSetIfRequired(ids, existance, Error{})
 	}
 
 	// if err is not a multi err, return it
-	e, ok := err.(PresenceError)
+	e, ok := err.(Error)
 	if !ok {
 		return err
 	}
@@ -246,7 +246,7 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 // multiSetIfRequired accepts set of ids and their existtance status
 // traverse over them and any key is not exists in db, set them in a multi/exec
 // request
-func (s *Redis) multiSetIfRequired(ids []string, existance []int, e PresenceError) error {
+func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error {
 	if len(ids) != len(existance) {
 		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
@@ -317,7 +317,7 @@ func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 		return nil, err
 	}
 
-	e := PresenceError{}
+	e := Error{}
 	res := make([]int, len(values))
 	for i, value := range values {
 		res[i], err = s.redis.Int(value)
