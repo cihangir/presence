@@ -15,10 +15,10 @@ var (
 	// Prefix for presence package
 	PresencePrefix = "presence"
 
-	// Error for stating the event id is not valid
+	// ErrInvalidID for stating the event id is not valid
 	ErrInvalidID = errors.New("invalid id")
 
-	// Error for stating the event status is not valid
+	// ErrInvalidStatus for stating the event status is not valid
 	ErrInvalidStatus = errors.New("invalid status")
 )
 
