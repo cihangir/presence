@@ -13,7 +13,7 @@ import (
 
 var (
 	// Prefix for presence package
-	PresencePrefix = "presence"
+	Prefix = "presence"
 
 	// ErrInvalidID for stating the event id is not valid
 	ErrInvalidID = errors.New("invalid id")
@@ -59,7 +59,7 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 	if err != nil {
 		return nil, err
 	}
-	redis.SetPrefix(PresencePrefix)
+	redis.SetPrefix(Prefix)
 
 	return &Redis{
 		redis:                redis,
@@ -223,12 +223,12 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	e := Event{}
 
 	// if incoming data len is smaller than our prefix, do not process the event
-	if len(n.Data) < len(PresencePrefix) {
+	if len(n.Data) < len(Prefix) {
 		s.errChan <- ErrInvalidID
 		return e
 	}
 
-	e.ID = string(n.Data[len(PresencePrefix)+1:])
+	e.ID = string(n.Data[len(Prefix)+1:])
 
 	switch n.Pattern {
 	case s.becameOfflinePattern:
