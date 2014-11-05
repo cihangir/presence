@@ -80,14 +80,15 @@ func NewRedis(
 	}, nil
 }
 
-// Online resets the expiration time for any given key
-// if key doesnt exists, it means user become online and should be set as online
-// Whenever application gets any probe from a client
-// should call this function
+// Online resets the expiration time for any given key. If key doesnt exists, it
+// means key (user) become online and should be set as online. Whenever
+// application gets any probe from a client should call this function. This
+// method performs way better when there is a throttling mechanism implemented
+// on top of it, please refer to benchmarks
 func (s *Redis) Online(ids ...string) error {
-	// try to send expire command in a batch request `Expire` command will reply
-	// with and integer reply - 0 or 1 for a given key -
-	// http://redis.io/topics/protocol#integer-reply.  If the response is 0 that
+	// try to send expire command in a batch request. `Expire` command will
+	// reply with integer reply - 0 or 1 for a given key -
+	// http://redis.io/topics/protocol#integer-reply. If the response is 0 that
 	// means the key doesnt exist in our system. You can read more about redis
 	// `Exist` command here http://redis.io/commands/exists
 	existance, err := s.multiExpire(ids, s.inactiveDuration)
@@ -159,6 +160,9 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 	}
 
 	if e.Len() > 0 {
+		// generally returning a meaningful data along with an error is not a
+		// good idea, but here, most of the calls may success, we should not
+		// stop the execution on first error
 		return res, e
 	}
 
@@ -187,10 +191,10 @@ func (s *Redis) ListenStatusChanges() chan Event {
 }
 
 var redisResToStatus = map[int]Status{
-	// redis exists response is 0 when the id is not in the system
+	// redis response for exists command is 0 when the id is not in the system
 	0: Offline,
 
-	// redis exists response is 1 when the id is in the system
+	// redis response for exists command is 1 when the id is in the system
 	1: Online,
 }
 
@@ -253,7 +257,6 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	case s.becameOnlinePattern:
 		e.Status = Online
 	default:
-		// todo - replace this with a custom err
 		s.errChan <- ErrInvalidStatus
 	}
 
@@ -262,6 +265,10 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 
 // multiSetIfRequired accepts a set of ids and their existance status
 func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error {
+	// redis ensures that all the responses in a transaction will be in the same
+	// order with the requests. So we can safely assume that our keys and their
+	// responses are in the same order. For more info
+	// http://redis.io/topics/transactions
 	if len(ids) != len(existance) {
 		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
 	}
@@ -277,7 +284,7 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 	// traverse over all the given keys and any key is not exists in db, set
 	// them in a multi/exec request
 	for i, exists := range existance {
-		// `0` means, member doesnt exists in presence system
+		// `0` means, member does not exists in presence system
 		if exists != 0 {
 			continue
 		}
@@ -289,13 +296,18 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 
 		// init multi command lazily
 		if notExistsCount == 0 {
-			c.Send("MULTI")
+			if err := c.Send("MULTI"); err != nil {
+				return err
+			}
 		}
 
 		notExistsCount++
 
 		// if we reach to that point, set the new key into system
-		c.Send("SETEX", s.redis.AddPrefix(ids[i]), s.inactiveDuration, ids[i])
+		err := c.Send("SETEX", s.redis.AddPrefix(ids[i]), s.inactiveDuration, ids[i])
+		if err != nil {
+			e.Append(ids[i], err)
+		}
 	}
 
 	// execute multi command if only we flushed some to connection
@@ -304,6 +316,11 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 		if _, err := c.Do("EXEC"); err != nil {
 			return err
 		}
+	}
+
+	// if we have any multierr, return it back
+	if e.Len() > 0 {
+		return e
 	}
 
 	return nil
@@ -318,11 +335,18 @@ func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 	defer c.Close()
 
 	// init multi command
-	c.Send("MULTI")
+	if err := c.Send("MULTI"); err != nil {
+		return nil, err
+	}
+
+	e := Error{}
 
 	// send expire command for all members
 	for _, id := range ids {
-		c.Send("EXPIRE", s.redis.AddPrefix(id), duration)
+		err := c.Send("EXPIRE", s.redis.AddPrefix(id), duration)
+		if err != nil {
+			e.Append(id, err)
+		}
 	}
 
 	// execute command
