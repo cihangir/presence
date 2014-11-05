@@ -360,7 +360,6 @@ func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 		return nil, err
 	}
 
-	e := Error{}
 	res := make([]int, len(values))
 	for i, value := range values {
 		res[i], err = s.redis.Int(value)
