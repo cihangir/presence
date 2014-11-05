@@ -1,4 +1,4 @@
-# Presence [![GoDoc](https://godoc.org/github.com/cihangir/presence?status.svg)](https://godoc.org/github.com/cihangir/presence) [![Build Status](https://travis-ci.org/cihangir/presence.svg?branch=master)](https://travis-ci.org/cihangir/presence) [![Coverage Status](https://img.shields.io/coveralls/cihangir/presence.svg)](https://coveralls.io/r/cihangir/presence)
+# Presence [![GoDoc](https://godoc.org/github.com/cihangir/presence?status.svg)](https://godoc.org/github.com/cihangir/presence) [![Build Status](https://travis-ci.org/cihangir/presence.svg?branch=master)](https://travis-ci.org/cihangir/presence)
 
 Presence in Redis
 ------------------
