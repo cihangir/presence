@@ -338,7 +338,7 @@ func TestSubscriptions(t *testing.T) {
 
 		ids := []string{<-nextID, <-nextID, <-nextID}
 
-		// sleep until expiration
+		// sleep for expiration
 		time.Sleep(testTimeoutDuration * 2)
 
 		onlineCount := 0
@@ -359,7 +359,7 @@ func TestSubscriptions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// sleep until expiration
+		// sleep for expiration
 		time.Sleep(testTimeoutDuration * 2)
 
 		if onlineCount != len(ids) {
