@@ -52,13 +52,23 @@ type Redis struct {
 	mu sync.Mutex
 }
 
-// NewRedis creates a Redis for any broker system that is architected to use,
-// communicate, forward events to the presence system
-func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, error) {
-	redis, err := redis.NewRedisSession(&redis.RedisConf{Server: server, DB: db})
+// NewRedis creates a Redis presence system
+func NewRedis(
+	server string, // connection string
+	db int, // redis db number
+	inactiveDuration time.Duration, // timeout duration
+) (Backend, error) {
+
+	// create the redis connection
+	redis, err := redis.NewRedisSession(&redis.RedisConf{
+		Server: server,
+		DB:     db,
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	// for prefix for redis backend
 	redis.SetPrefix(Prefix)
 
 	return &Redis{
@@ -71,10 +81,15 @@ func NewRedis(server string, db int, inactiveDuration time.Duration) (Backend, e
 }
 
 // Online resets the expiration time for any given key
-// if key doesnt exists, it means user is now online and should be set as online
+// if key doesnt exists, it means user become online and should be set as online
 // Whenever application gets any probe from a client
 // should call this function
 func (s *Redis) Online(ids ...string) error {
+	// try to send expire command in a batch request `Expire` command will reply
+	// with and integer reply - 0 or 1 for a given key -
+	// http://redis.io/topics/protocol#integer-reply.  If the response is 0 that
+	// means the key doesnt exist in our system. You can read more about redis
+	// `Exist` command here http://redis.io/commands/exists
 	existance, err := s.multiExpire(ids, s.inactiveDuration)
 	if err == nil {
 		return s.multiSetIfRequired(ids, existance, Error{})
@@ -86,16 +101,12 @@ func (s *Redis) Online(ids ...string) error {
 		return err
 	}
 
-	errs := s.multiSetIfRequired(ids, existance, e)
-	if errs != nil {
-		return errs
+	// we have a multierr here, so process following operations with that info
+	if err := s.multiSetIfRequired(ids, existance, e); err != nil {
+		return err
 	}
 
-	if e.Len() > 0 {
-		return e
-	}
-
-	return nil
+	return e
 }
 
 // Offline sets given ids as offline
@@ -115,7 +126,7 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 	// init multi command
 	c.Send("MULTI")
 
-	// send expire command for all members
+	// send exists command for all members
 	for _, id := range ids {
 		c.Send("EXISTS", s.redis.AddPrefix(id))
 	}
@@ -131,11 +142,13 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 		return nil, err
 	}
 
+	e := Error{}
 	res := make([]Event, len(values))
 	for i, value := range values {
 		status, err := s.redis.Int(value)
 		if err != nil {
-			return nil, err
+			e.Append(ids[i], err)
+			continue
 		}
 
 		res[i] = Event{
@@ -143,6 +156,10 @@ func (s *Redis) Status(ids ...string) ([]Event, error) {
 			// cast redis response to Status
 			Status: redisResToStatus[status],
 		}
+	}
+
+	if e.Len() > 0 {
+		return res, e
 	}
 
 	return res, nil
@@ -243,9 +260,7 @@ func (s *Redis) createEvent(n gredis.PMessage) Event {
 	return e
 }
 
-// multiSetIfRequired accepts set of ids and their existtance status
-// traverse over them and any key is not exists in db, set them in a multi/exec
-// request
+// multiSetIfRequired accepts a set of ids and their existance status
 func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error {
 	if len(ids) != len(existance) {
 		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
@@ -259,6 +274,8 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 	// item count for non-existent members
 	notExistsCount := 0
 
+	// traverse over all the given keys and any key is not exists in db, set
+	// them in a multi/exec request
 	for i, exists := range existance {
 		// `0` means, member doesnt exists in presence system
 		if exists != 0 {
@@ -276,6 +293,8 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 		}
 
 		notExistsCount++
+
+		// if we reach to that point, set the new key into system
 		c.Send("SETEX", s.redis.AddPrefix(ids[i]), s.inactiveDuration, ids[i])
 	}
 
