@@ -69,13 +69,13 @@ if err != nil {
 ```go
 
 // send online presence data to system - user log in
-s.Online("id")
-s.Online("id2")
+err = s.Online("id")
+err = s.Online("id2")
 
 
 // send offline presence data to system - user log out
-s.Offline("id")
-s.Offline("id2")
+err = s.Offline("id")
+err = s.Offline("id2")
 
 // get status of some ids
 status, err := s.Status([]string{"id20", "id21"}...)
