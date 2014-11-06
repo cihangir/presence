@@ -35,13 +35,13 @@ For usage see examples below or go to godoc page.
 Install the package with:
 
 ```bash
-go get github.com/siesta/redisence
+go get github.com/cihangir/presence
 ```
 
 Import it with:
 
 ```go
-import "github.com/siesta/redisence"
+import "github.com/cihangir/presence"
 ```
 
 
