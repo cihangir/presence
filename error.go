@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Error holds the errors for given specific ids
+// Error holds the non-thread safe errors for given specific ids
 type Error map[string]error
 
 // Append adds an error to the aggregated errors with an id

@@ -2,8 +2,11 @@
 package presence
 
 const (
+	// Unknown is for errored requests
+	Unknown Status = iota
+
 	// Offline is for displaying user as offline in the system
-	Offline Status = iota + 1 // do not handle unset variable as offline
+	Offline // do not handle unset variable as offline
 
 	// Online is for displaying user as online in the system
 	Online
@@ -18,14 +21,13 @@ const (
 // Status defines what is the current status of a user in presence system
 type Status int
 
-// String implements the stringer interface
+// String implements the Stringer interface
 func (s Status) String() string {
 	switch s {
 	case Offline:
 		return offline
 	case Online:
 		return online
-
 	}
 
 	// if status is not set or not a known value
