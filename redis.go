@@ -270,7 +270,11 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 	// responses are in the same order. For more info
 	// http://redis.io/topics/transactions
 	if len(ids) != len(existance) {
-		return fmt.Errorf("length is not same Ids: %d Existance: %d", len(ids), len(existance))
+		return fmt.Errorf(
+			"length is not same Ids: %d Existance: %d",
+			len(ids),
+			len(existance),
+		)
 	}
 
 	// get one connection from pool
@@ -284,12 +288,13 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 	// traverse over all the given keys and any key is not exists in db, set
 	// them in a multi/exec request
 	for i, exists := range existance {
-		// `0` means, member does not exists in presence system
+		// `0` means, member does not exists in presence system, no need to set
+		// `an expire on that key
 		if exists != 0 {
 			continue
 		}
 
-		// if we got any error for the current id, do not process it
+		// if we got any error for the current id before, do not process it
 		if e.Has(ids[i]) {
 			continue
 		}
@@ -331,6 +336,7 @@ func (s *Redis) multiSetIfRequired(ids []string, existance []int, e Error) error
 func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 	// get one connection from pool
 	c := s.redis.Pool().Get()
+
 	// close connection
 	defer c.Close()
 
@@ -355,18 +361,33 @@ func (s *Redis) multiExpire(ids []string, duration string) ([]int, error) {
 		return nil, err
 	}
 
+	return s.mapResult(ids, r, e)
+}
+
+func (s *Redis) mapResult(ids []string, r interface{}, e Error) ([]int, error) {
 	values, err := s.redis.Values(r)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]int, len(values))
-	for i, value := range values {
-		res[i], err = s.redis.Int(value)
-		if err != nil {
-			e.Append(ids[i], err)
+	// allocate a new slice with given ids' count, there can be errors on some
+	// ids but skip them and set as unknown
+	res := make([]int, len(ids))
+
+	// magic here is to keep the index of the values, becase there can be some
+	// skipped ids, and they wont be in the result set
+	vIndex := 0
+	for i, id := range ids {
+		if e.Has(id) {
+			continue
 		}
 
+		res[i], err = s.redis.Int(values[vIndex])
+		if err != nil {
+			e.Append(id, err)
+		}
+
+		vIndex++
 	}
 
 	// if we got any error, return them all along with result set
