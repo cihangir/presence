@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/siesta/presence"
+	"github.com/cihangir/presence"
 )
 
 func main() {
