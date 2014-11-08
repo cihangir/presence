@@ -25,8 +25,7 @@ either by the application or by the persistency layer
 Online clients should notify the presence system with their unique identifier repeatedly. We can call it as heartbeat.
 
 
-With this package i am gonna try to handle the persistency layer for user presence.
-
+"This package aims to handle the persistency layer for presence"
 
 For usage see examples below or go to godoc page.
 
